@@ -32,3 +32,28 @@ package shaker
 type Shaker interface {
 	GetShakeOffsets(level float64) (float64, float64)
 }
+
+// Used by mipix in case multiple shakes need to be active at the same time.
+//
+// Channel zero is special and will use a fallback shaker even if uninitialized
+// (though it's best practice to always set your shakers explicitly). It's also
+// the channel that will be automatically selected for most shaker functions in
+// mipix if no channel is explicitly passed.
+//
+// Here's an example of when multiple channels are useful:
+//  - You need an always-on shake for camera motion or environment shaking,
+//    like being in a ship or hot air ballon.
+//  - You need the typical triggered shakes for momentary impacts, explosions,
+//    earthquakes and so on.
+//  - You have some alter states like drunk or confused that might use some
+//    extra shaker channels.
+// In these cases, you should define your own channel constants, e.g:
+//   const (
+//     ChanBackground shaker.Channel = iota
+//     ChanTrigger
+//     ChanDrunk
+//   )
+// In even more complex cases, you might decide to treat your channels like a
+// shaker pool to manage everything more dynamically; who knows, it all depends
+// on the game.
+type Channel uint8

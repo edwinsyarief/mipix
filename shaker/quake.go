@@ -9,8 +9,8 @@ var _ Shaker = (*Quake)(nil)
 // Implementation of a [Shaker] with consistently oscillating
 // movement in both axes, but with some irregularities in speed
 // and travel distance. It's interesting because it has those
-// unpredictable variances within a very predictable and rather
-// smooth motion pattern.
+// unpredictable variances within a very predictable and slightly
+// smoothed motion pattern.
 //
 // The implementation is tick-rate independent.
 type Quake struct {

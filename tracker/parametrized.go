@@ -28,6 +28,7 @@ func (self *Parametrized) initialize() {
 	}
 }
 
+// Sets the maximum speed of the tracking:
 //  - maxScreensPerSecond is the maximum speed you want to allow the camera to move at.
 //    It defaults to 2.0 screens per second.
 //  - screensToMaxSpeed is the distance at which the maximum speed is reached. The

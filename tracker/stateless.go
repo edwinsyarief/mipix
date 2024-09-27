@@ -2,8 +2,29 @@ package tracker
 
 import "github.com/tinne26/mipix/internal"
 
-// Applies a lerp between current and target position.
-var Linear Tracker = linearTracker{}
+type tracker = Tracker
+
+// A few stateless built-in trackers.
+var (
+	// Update(...) always returns (0, 0).
+	Frozen tracker = frozenTracker{}
+	
+	// Update(...) always returns (target - current).
+	Instant tracker = instantTracker{}
+
+	// Applies a lerp between current and target position.
+	Linear tracker = linearTracker{}
+)
+
+type frozenTracker struct {}
+func (frozenTracker) Update(currentX, currentY, targetX, targetY, prevSpeedX, prevSpeedY float64) (float64, float64) {
+	return 0, 0
+}
+
+type instantTracker struct{}
+func (instantTracker) Update(currentX, currentY, targetX, targetY, prevSpeedX, prevSpeedY float64) (float64, float64) {
+	return targetX - currentX, targetY - currentY
+}
 
 // A simple linear interpolation tracker.
 type linearTracker struct {}

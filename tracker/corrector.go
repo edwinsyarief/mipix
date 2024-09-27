@@ -40,8 +40,8 @@ func (self *corrector) Update(errorX, errorY float64) {
 
 	// update speeds
 	// (NOTICE: the code could be greatly shortened, but
-   // I'm happy with it being long, simple and obvious
-   // in this particular case)
+	// I'm happy with it being long, simple and obvious
+	// in this particular case)
 	if errorX < 0.0 { // wanna go left
 		if self.speedX > 0.0 {
 			self.speedX -= speedChange // decelerate to turn around
