@@ -1,9 +1,12 @@
 package internal
 
+import "image"
+
 import "github.com/hajimehoshi/ebiten/v2"
 
 var BridgedLogicalWidth int
 var BridgedLogicalHeight int
+var BridgedCameraOrigin image.Point
 var CurrentZoom float64
 var CurrentTPU uint64 // ticks per update
 

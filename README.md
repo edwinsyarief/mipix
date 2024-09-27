@@ -12,6 +12,14 @@ This package allows you to implement your game working with logical canvases and
 - Basic camera with smooth tracking, zoom and screen shakes. Most behaviors can be customized through interfaces.
 - Interleave high resolution and logical draws when necessary.
 
+## How to use mipix
+
+The best way to learn mipix is to read the [introductory tutorial with code samples](https://github.com/tinne26/mipix/tree/main/docs/introduction.md) and the [package documentation](https://pkg.go.dev/github.com/tinne26/mipix). More code samples are available on [tinne26/mipix-examples](https://github.com/tinne26/mipix-examples), but you should really spend a couple minutes to understand how the draw model works on mipix.
+
+If you are too lazy for that, at least read the summary:
+- The canvas you receive on draw represents pixels 1-to-1. Your pixel art must be drawn directly to the canvas, in its original size. Just draw your pixel art.
+- The canvas you receive on draw does *not* always have the same size, and it does *not* necessarily match the resolution you set for your game with `mipix.SetResolution(W, H)`. This can happen due to zoom effects, smooth camera movement and others. Just focus on rendering the logical area requested by `mipix.Camera().Area()`.
+
 ## Context
 
 This package implements the second model described on [lopix](https://github.com/tinne26/lopix). If `lopix` implements the simplest model for pixel art games, `mipix` is slightly more advanced and provides a much more practical foundation to build pixel art games:
@@ -23,7 +31,8 @@ While side scrollers can be implemented with this model, that's probably not ide
 
 [^1]: As opposed to this "sliding animation" model, pixel artists can design their animations to look good as they advance through the concrete pixel grid, with concrete pixel advances between frames. This isn't supported by most animation libraries, takes more work for the artist, takes more work for the developer, and makes animation usage more rigid (e.g., need separate "walking on stairs" animation)... but with this model, you can draw moving characters in the logical canvas. This is more common on RPGs and top down games than side scrollers, but it's fairly uncommon everywhere in general. Smoothness perception throughout movement is also of a different class.
 
-## Code example
+## Random thoughts and comments
 
-I haven't written examples oriented to end users yet, the only examples available are a bit overkill as they were designed to help me debug and test features. See https://github.com/tinne26/mipix-examples.
-
+- Need to add camera area limits, blockers and so on.
+- Motion blur should be considered for the high resolution draws and maybe even the main canvas. While most people say they hate motion blur, that mostly refers to motion blur as an aesthetic effect. Light amounts of motion blur could greatly reduce image stability problems during movement.
+- The pixel art sampling shaders do cause a visible amount of "fattening" for the pixels.

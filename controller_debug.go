@@ -35,7 +35,7 @@ func (self *controller) debugDrawAll(target *ebiten.Image) {
 	// determine offscreen size
 	targetBounds := target.Bounds()
 	targetWidth, targetHeight := float64(targetBounds.Dx()), float64(targetBounds.Dy())
-	height := 256/ebiten.Monitor().DeviceScaleFactor()
+	height := 256.0/ebiten.Monitor().DeviceScaleFactor()
 	width  := height*(targetWidth/targetHeight)
 	offWidth, offHeight := int(width), int(height)
 

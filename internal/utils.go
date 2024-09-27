@@ -98,6 +98,7 @@ var pkgFillTrianglesOpts ebiten.DrawTrianglesOptions
 
 func init() {
 	pkgMask1x1 = ebiten.NewImage(1, 1)
+	pkgMask1x1.Fill(color.RGBA{255, 255, 255, 255})
 	pkgFillVertices = make([]ebiten.Vertex, 4)
 	pkgFillVertIndices = []uint16{0, 1, 3, 3, 1, 2}
 	for i := range 4 {
@@ -122,6 +123,27 @@ func FillOverRect(target *ebiten.Image, bounds image.Rectangle, fillColor color.
 
 	minX, minY := float32(bounds.Min.X), float32(bounds.Min.Y)
 	maxX, maxY := float32(bounds.Max.X), float32(bounds.Max.Y)
+	pkgFillVertices[0].DstX = minX
+	pkgFillVertices[0].DstY = minY
+	pkgFillVertices[1].DstX = maxX
+	pkgFillVertices[1].DstY = minY
+	pkgFillVertices[2].DstX = maxX
+	pkgFillVertices[2].DstY = maxY
+	pkgFillVertices[3].DstX = minX
+	pkgFillVertices[3].DstY = maxY
+	target.DrawTriangles(pkgFillVertices, pkgFillVertIndices, pkgMask1x1, &pkgFillTrianglesOpts)
+}
+
+func FillOverRectF32(target *ebiten.Image, minX, minY, maxX, maxY float32, fillColor color.Color) {
+	if maxX <= minX || maxY <= minY { return }
+	r, g, b, a := toRGBAf32(fillColor)
+	for i := range 4 {
+		pkgFillVertices[i].ColorR = r
+		pkgFillVertices[i].ColorG = g
+		pkgFillVertices[i].ColorB = b
+		pkgFillVertices[i].ColorA = a
+	}
+
 	pkgFillVertices[0].DstX = minX
 	pkgFillVertices[0].DstY = minY
 	pkgFillVertices[1].DstX = maxX

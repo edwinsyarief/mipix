@@ -15,8 +15,8 @@ func (self *controller) cameraAreaGet() image.Rectangle {
 func (self *controller) cameraAreaF64() (minX, minY, maxX, maxY float64) {
 	zoomedWidth  := float64(self.logicalWidth )/self.zoomCurrent
 	zoomedHeight := float64(self.logicalHeight)/self.zoomCurrent
-	minX = self.trackerCurrentX - zoomedWidth /2.0 + self.shakeOffsetX
-	minY = self.trackerCurrentY - zoomedHeight/2.0 + self.shakeOffsetY
+	minX = self.trackerCurrentX - zoomedWidth /2.0 + self.shakerOffsetX
+	minY = self.trackerCurrentY - zoomedHeight/2.0 + self.shakerOffsetY
 	return minX, minY, minX + zoomedWidth, minY + zoomedHeight
 }
 
@@ -26,6 +26,7 @@ func (self *controller) updateCameraArea() {
 		int(math.Floor(minX)), int(math.Floor(minY)),
 		int(math.Ceil( maxX)), int(math.Ceil( maxY)),
 	)
+	internal.BridgedCameraOrigin = self.cameraArea.Min
 }
 
 // ---- tracking ----
@@ -118,34 +119,24 @@ func (self *controller) cameraGetInternalZoomer() zoomer.Zoomer {
 }
 
 func (self *controller) updateShake() {
-	if self.cameraIsShaking() {
-		self.shakeWasActive = true
-		activity := self.getShakeActivity()
-		shakeX, shakeY := self.cameraGetInternalShaker().GetShakeOffsets(activity)
-		self.shakeElapsed += TicksDuration(self.tickRate)
-		if self.redrawManaged && (shakeX != self.shakeOffsetX || shakeY != self.shakeOffsetY) {
-			self.needsRedraw = true
-		}
-		self.shakeOffsetX, self.shakeOffsetY = shakeX, shakeY
-	} else {
-		if self.shakeWasActive {
-			self.cameraGetInternalShaker().GetShakeOffsets(0.0) // termination call
-			if self.shakeOffsetX != 0.0 || self.shakeOffsetY != 0.0 {
-				self.shakeOffsetX, self.shakeOffsetY = 0.0, 0.0
-				self.needsRedraw = true
-			}
-		}
-		self.shakeWasActive = false
+	// compute new offsets
+	var offsetX, offsetY float64
+	for i, _ := range self.shakerChannels {
+		self.shakerChannels[i].Update(i, self.tickRate)
+		offsetX += self.shakerChannels[i].offsetX
+		offsetY += self.shakerChannels[i].offsetY
 	}
+
+	// set needsRedraw flag if necessary
+	if self.redrawManaged && (offsetX != self.shakerOffsetX || offsetY != self.shakerOffsetY) {
+		self.needsRedraw = true
+	}
+
+	// register new offsets
+	self.shakerOffsetX = offsetX
+	self.shakerOffsetY = offsetY
 }
 
-func (self *controller) cameraGetInternalShaker() shaker.Shaker {
-	if self.shaker != nil { return self.shaker }
-	if defaultShaker == nil {
-		defaultShaker = &shaker.Random{}
-	}
-	return defaultShaker
-}
 
 func (self *controller) cameraZoom(newZoomLevel float64) {
 	if self.inDraw { panic("can't zoom during draw stage") }
@@ -173,58 +164,105 @@ func (self *controller) cameraGetZoom() (current, target float64) {
 
 // ---- screenshake ----
 
-func (self *controller) cameraSetShaker(shaker shaker.Shaker) {
-	if self.inDraw { panic("can't set shaker during draw stage") }
-	self.shaker = shaker
-}
-
-func (self *controller) cameraGetShaker() shaker.Shaker {
-	return self.shaker
-}
-
-func (self *controller) cameraStartShake(fadeIn TicksDuration) {
-	if self.inDraw { panic("can't start shake during draw stage") }
-	activity := self.getShakeActivity()
-	self.shakeFadeIn = fadeIn
-	self.shakeDuration = maxUint32
-	self.shakeFadeOut = 0
-	self.shakeElapsed = TicksDuration(float64(fadeIn)*activity)
-}
-
-func (self *controller) cameraEndShake(fadeOut TicksDuration) {
-	if self.inDraw { panic("can't end shake during draw stage") }
-	activity := self.getShakeActivity()
-	self.shakeDuration = self.shakeElapsed - self.shakeFadeIn
-	self.shakeFadeOut  = fadeOut
-	self.shakeElapsed  = self.shakeFadeIn + self.shakeDuration
-	self.shakeElapsed += TicksDuration(float64(fadeOut)*(1.0 - activity))
-}
-
-func (self *controller) cameraTriggerShake(fadeIn, duration, fadeOut TicksDuration) {
-	if self.inDraw { panic("can't trigger shake during draw stage") }
-	self.cameraStartShake(fadeIn)
-	self.shakeDuration = duration
-	self.shakeFadeOut  = fadeOut // TODO: maybe triggered shakes shouldn't stop pre-existing continuous shakes?
-}
-
-func (self *controller) cameraIsShaking() bool {
-	if self.shakeElapsed == 0 {
-		return self.shakeFadeIn > 0 || self.shakeDuration > 0
+func (self *controller) cameraSetShaker(newShaker shaker.Shaker, channels ...shaker.Channel) {
+	if self.inDraw { panic("can't SetShaker during draw stage") }
+	if len(channels) > 1 {
+		panic("can't pass multiple shaker channels to SetShaker")
+	} else if len(channels) == 0 {
+		self.shakerChannels[0].shaker = newShaker
 	} else {
-		if self.shakeElapsed < self.shakeDuration { return true }
-		return self.shakeElapsed < (self.shakeFadeIn + self.shakeDuration + self.shakeFadeOut)
+		index := int(channels[0])
+		if newShaker == nil && index >= len(self.shakerChannels) { return }
+		newChan := shakerChannel{ shaker: newShaker }
+		self.shakerChannels = setAt(self.shakerChannels, newChan, index)
+
+		// compact nils at the end of the slice
+		compactCount := 0
+		for i := len(self.shakerChannels) - 1; i > 0; i-- {
+			if self.shakerChannels[i].shaker != nil { break }
+			compactCount += 1
+		}
+		if compactCount > 0 {
+			self.shakerChannels = self.shakerChannels[ : len(self.shakerChannels) - compactCount]
+		}
 	}
 }
 
-func (self *controller) getShakeActivity() float64 {
-	if self.shakeElapsed == 0 { return 0 }
-	if self.shakeElapsed < self.shakeFadeIn {
-		return float64(self.shakeElapsed)/float64(self.shakeFadeIn)
+func (self *controller) cameraGetShaker(channels ...shaker.Channel) shaker.Shaker {
+	if len(channels) == 0 {
+		return self.shakerChannels[0].shaker
+	} else if len(channels) > 1 {
+		panic("can't GetShaker for multiple shaker channels at once")
+	} else if int(channels[0]) >= len(self.shakerChannels) {
+		return nil
 	} else {
-		elapsed := self.shakeElapsed - self.shakeFadeIn
-		if elapsed <= self.shakeDuration { return 1.0 } // shake in progress
-		elapsed -= self.shakeDuration
-		if elapsed >= self.shakeFadeOut { return 0.0 }
-		return 1.0 - float64(elapsed)/float64(self.shakeFadeOut)
+		return self.shakerChannels[channels[0]].shaker
 	}
+}
+
+func (self *controller) cameraStartShake(fadeIn TicksDuration, channels ...shaker.Channel) {
+	if self.inDraw { panic("can't StartShake during draw stage") }
+	if len(channels) == 0 {
+		self.shakerChannels[0].Start(fadeIn)
+	} else {
+		for _, channel := range channels {
+			if !self.shakerChannelAccessible(channel) {
+				panic("can't StartShake on uninitialized channels")
+			}
+			self.shakerChannels[channel].Start(fadeIn)
+		}
+	}	
+}
+
+func (self *controller) cameraEndShake(fadeOut TicksDuration, channels ...shaker.Channel) {
+	if self.inDraw { panic("can't EndShake during draw stage") }
+	if len(channels) == 0 {
+		self.shakerChannels[0].End(fadeOut)
+	} else {
+		for _, channel := range channels {
+			if !self.shakerChannelAccessible(channel) {
+				panic("can't EndShake on uninitialized channels")
+			}
+			self.shakerChannels[channel].End(fadeOut)
+		}
+	}
+}
+
+func (self *controller) cameraTriggerShake(fadeIn, duration, fadeOut TicksDuration, channels ...shaker.Channel) {
+	if self.inDraw { panic("can't TriggerShake during draw stage") }
+	if len(channels) == 0 {
+		self.shakerChannels[0].Trigger(fadeIn, duration, fadeOut)
+	} else {
+		for _, channel := range channels {
+			if !self.shakerChannelAccessible(channel) {
+				panic("can't TriggerShake on uninitialized channels")
+			}
+			self.shakerChannels[channel].Trigger(fadeIn, duration, fadeOut)
+		}
+	}
+}
+
+func (self *controller) cameraIsShaking(channels ...shaker.Channel) bool {
+	if len(channels) > 1 {
+		panic("IsShaking accepts at most one shaker channel as argument")
+	}
+
+	if len(channels) == 0 {
+		for i, _ := range self.shakerChannels {
+			if self.shakerChannels[i].IsShaking() {
+				return true
+			}
+		}
+		return false
+	} else if !self.shakerChannelAccessible(channels[0]) {
+		return false
+	} else {
+		return self.shakerChannels[channels[0]].IsShaking()
+	}
+}
+
+func (self *controller) shakerChannelAccessible(channel shaker.Channel) bool {
+	return (channel == 0 || (
+		int(channel) < len(self.shakerChannels) &&
+		self.shakerChannels[channel].shaker != nil))
 }

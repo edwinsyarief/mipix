@@ -1,6 +1,7 @@
 package mipix
 
 import "fmt"
+import "image/color"
 
 import "github.com/hajimehoshi/ebiten/v2"
 
@@ -117,6 +118,13 @@ func (self AccessorHiRes) Draw(target, source *ebiten.Image, x, y float64) {
 // Similar to [AccessorHiRes.Draw](), but horizontally flipped.
 func (self AccessorHiRes) DrawHorzFlip(target, source *ebiten.Image, x, y float64) {
 	pkgController.hiResDrawHorzFlip(target, source, x, y)
+}
+
+// Fills the logical area designated by the given coordinates with fillColor.
+// If you need fills with alpha blending directly without high resolution,
+// see the utils subpackage.
+func (self AccessorHiRes) FillOverRect(target *ebiten.Image, minX, minY, maxX, maxY float64, fillColor color.Color) {
+	pkgController.hiResFillOverRect(target, minX, minY, maxX, maxY, fillColor)
 }
 
 // --- scaling ---
@@ -242,7 +250,7 @@ func Convert() AccessorConvert { return AccessorConvert{} }
 
 // Transforms coordinates obtained from [ebiten.CursorPosition]() and similar
 // functions to coordinates within the game's logical space.
-func (AccessorConvert) ToLogicalCoords(x, y int) (float64, float64) {
+func (AccessorConvert) ScreenToLogical(x, y int) (float64, float64) {
 	return pkgController.convertToLogicalCoords(x, y)
 }
 

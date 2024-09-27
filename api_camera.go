@@ -114,33 +114,38 @@ func (AccessorCamera) GetZoom() (current, target float64) {
 
 // Returns the current screen shaker interface.
 // See [AccessorCamera.SetShaker]() for more details.
-func (AccessorCamera) GetShaker() shaker.Shaker {
+func (AccessorCamera) GetShaker(channel ...shaker.Channel) shaker.Shaker {
 	return pkgController.cameraGetShaker()
 }
 
 // Sets a shaker. By default the screen shaker interface is
 // nil, and shakes are handled by a fallback [shaker.SimpleShaker].
-func (AccessorCamera) SetShaker(shaker shaker.Shaker) {
-	pkgController.cameraSetShaker(shaker)
+// You can optionally specify the shaker channel. Attempting
+// to pass multiple channels or [shaker.ChanAll] will make the
+// function panic.
+func (AccessorCamera) SetShaker(shaker shaker.Shaker, channel ...shaker.Channel) {
+	pkgController.cameraSetShaker(shaker, channel...)
 }
 
 // Starts a screen shake. The screen will continue shaking
 // indefinitely; you must use [AccessorCamera.EndShake]()
 // to stop it again.
-func (AccessorCamera) StartShake(fadeIn TicksDuration) {
-	pkgController.cameraStartShake(fadeIn)
+func (AccessorCamera) StartShake(fadeIn TicksDuration, channels ...shaker.Channel) {
+	pkgController.cameraStartShake(fadeIn, channels...)
 }
 
 // Stop a screen shake. This can even be used to fade out
 // triggered shakes early, or to ensure that no shakes
 // remain active after screen transitions or others.
-func (AccessorCamera) EndShake(fadeOut TicksDuration) {
-	pkgController.cameraEndShake(fadeOut)
+func (AccessorCamera) EndShake(fadeOut TicksDuration, channels ...shaker.Channel) {
+	pkgController.cameraEndShake(fadeOut, channels...)
 }
 
-// Returns whether any screen shaking is happening.
-func (AccessorCamera) IsShaking() bool {
-	return pkgController.cameraIsShaking()
+// Returns whether any screen shaking is happening. It can optionally
+// receive one specific channel, in which case the function will only
+// check if that channel is shaking.
+func (AccessorCamera) IsShaking(channel ...shaker.Channel) bool {
+	return pkgController.cameraIsShaking(channel...)
 }
 
 // Triggers a screenshake with specific fade in, duration and
@@ -148,6 +153,13 @@ func (AccessorCamera) IsShaking() bool {
 //
 // TODO: mention if this overrides previously active shakes,
 // or resets anything or whatever.
-func (AccessorCamera) TriggerShake(fadeIn, duration, fadeOut TicksDuration) {
-	pkgController.cameraTriggerShake(fadeIn, duration, fadeOut)
+func (AccessorCamera) TriggerShake(fadeIn, duration, fadeOut TicksDuration, channels ...shaker.Channel) {
+	pkgController.cameraTriggerShake(fadeIn, duration, fadeOut, channels...)
 }
+
+// This might be interesting for ephemerous shakes, so you don't have to be tracking and managing
+// everything so manually. That being said, you would still need a pool and to manage everything
+// diligently, so maybe there's not much gain here.
+// func (AccessorCamera) TriggerEventShake(shaker shaker.Shaker, fadeIn, duration, fadeOut TicksDuration) {
+//
+// }

@@ -2,18 +2,20 @@ package mipix
 
 import "math"
 import "image"
+import "image/color"
 
 import "github.com/hajimehoshi/ebiten/v2"
 
 import "github.com/tinne26/mipix/internal"
+import "github.com/tinne26/mipix/utils"
 import "github.com/tinne26/mipix/zoomer"
 import "github.com/tinne26/mipix/tracker"
-import "github.com/tinne26/mipix/shaker"
 
 var pkgController controller
 func init() {
 	pkgController.cameraZoomReset(1.0)
 	pkgController.tickSetRate(1)
+	pkgController.shakerChannels = make([]shakerChannel, 1)
 	pkgController.lastFlushCoordinatesTick = 0xFFFF_FFFF_FFFF_FFFF
 	pkgController.needsRedraw = true
 }
@@ -35,7 +37,6 @@ type controller struct {
 	redrawManaged bool
 	needsRedraw bool
 	needsClear bool
-	shakeWasActive bool
 	stretchingEnabled bool
 	scalingFilter ScalingFilter
 	
@@ -58,13 +59,9 @@ type controller struct {
 	zoomTarget float64
 
 	// shake
-	shaker shaker.Shaker
-	shakeElapsed TicksDuration
-	shakeFadeIn TicksDuration
-	shakeDuration TicksDuration
-	shakeFadeOut TicksDuration
-	shakeOffsetX float64
-	shakeOffsetY float64
+	shakerChannels []shakerChannel
+	shakerOffsetX float64
+	shakerOffsetY float64
 
 	// ticks
 	currentTick uint64
@@ -153,7 +150,9 @@ func (self *controller) getLogicalCanvas() *ebiten.Image {
 	height := self.cameraArea.Dy()
 
 	if self.reusableCanvas == nil {
-		self.reusableCanvas = ebiten.NewImage(width, height)
+		refWidth  := max(width , self.logicalWidth  + 1) // +1 because smooth movement will..
+		refHeight := max(height, self.logicalHeight + 1) // ..force this in most games anyways
+		self.reusableCanvas = ebiten.NewImage(refWidth, refHeight)
 		return self.reusableCanvas
 	} else {
 		bounds := self.reusableCanvas.Bounds()
@@ -161,12 +160,17 @@ func (self *controller) getLogicalCanvas() *ebiten.Image {
 		if width == availableWidth && height == availableHeight {
 			return self.reusableCanvas
 		} else if width <= availableWidth && height <= availableHeight {
-			rect := image.Rect(0, 0, width, height)
-			canvas := self.reusableCanvas.SubImage(rect).(*ebiten.Image)
+			canvas := utils.SubImage(self.reusableCanvas, 0, 0, width, height)
 			if ebiten.IsScreenClearedEveryFrame() { canvas.Clear() } // TODO: is this the best place to do it?
 			return canvas
 		} else { // insufficient width or height
-			self.reusableCanvas = ebiten.NewImage(width, height)
+			// taking into account target zoom will make it easier to pre-request
+			// a single bigger canvas without having to thrash the GPU memory
+			// continuously through a zoom-out transition.
+			zoomTarget := min(max(self.zoomTarget, 0.05), 1.0)
+			refWidth  := int(math.Ceil(float64(width + 1.0)/zoomTarget))
+			refHeight := int(math.Ceil(float64(height + 1.0)/zoomTarget))
+			self.reusableCanvas = ebiten.NewImage(refWidth, refHeight)
 			return self.reusableCanvas
 		}
 	}
@@ -187,10 +191,10 @@ func (self *controller) getActiveHiResCanvas(hiResCanvas *ebiten.Image) *ebiten.
 		return hiResCanvas
 	case hiAspectRatio  > loAspectRatio: // horz margins
 		xMargin := int((float64(hiWidth) - loAspectRatio*float64(hiHeight))/2.0)
-		return SubImage(hiResCanvas, xMargin, 0, hiWidth - xMargin, hiHeight)
+		return utils.SubImage(hiResCanvas, xMargin, 0, hiWidth - xMargin, hiHeight)
 	case loAspectRatio  > hiAspectRatio: // vert margins
 		yMargin := int((float64(hiHeight) - float64(hiWidth)/loAspectRatio)/2.0)
-		return SubImage(hiResCanvas, 0, yMargin, hiWidth, hiHeight - yMargin)
+		return utils.SubImage(hiResCanvas, 0, yMargin, hiWidth, hiHeight - yMargin)
 	default:
 		panic("unreachable")
 	}
@@ -315,6 +319,27 @@ func (self *controller) hiResDraw(target, source *ebiten.Image, x, y float64) {
 func (self *controller) hiResDrawHorzFlip(target, source *ebiten.Image, x, y float64) {
 	if !self.inDraw { panic("can't mipix.HiRes().DrawHorzFlip() outside draw stage") }
 	self.internalHiResDraw(target, source, x, y, true)
+}
+
+func (self *controller) hiResFillOverRect(target *ebiten.Image, minX, minY, maxX, maxY float64, fillColor color.Color) {
+	targetBounds := target.Bounds()
+	targetWidth, targetHeight := float64(targetBounds.Dx()), float64(targetBounds.Dy())
+	hrMinX, hrMinY := self.logicalToHiResCanvasCoords(minX, minY, targetWidth, targetHeight)
+	hrMaxX, hrMaxY := self.logicalToHiResCanvasCoords(maxX, maxY, targetWidth, targetHeight)
+	ox, oy := float64(targetBounds.Min.X), float64(targetBounds.Min.Y)
+	
+	xl, xr := float32(hrMinX + ox), float32(hrMaxX + ox)
+	yt, yb := float32(hrMinY + oy), float32(hrMaxY + oy)
+	internal.FillOverRectF32(target, xl, yt, xr, yb, fillColor)
+}
+
+// TODO: something like this is not only important, but should be exposed directly,
+// both for low res and high res, honestly. Or on Convert().
+func (self *controller) logicalToHiResCanvasCoords(x, y, targetWidth, targetHeight float64) (float64, float64) {
+	camMinX, camMinY, camMaxX, camMaxY := self.cameraAreaF64()
+	x64, y64 := float64(x), float64(y)
+	xOffset, yOffset := x64 - camMinX, y64 - camMinY
+	return targetWidth*(xOffset/(camMaxX - camMinX)), targetHeight*(yOffset/(camMaxY - camMinY))
 }
 
 func (self *controller) internalHiResDraw(target, source *ebiten.Image, x, y float64, horzFlip bool) {
