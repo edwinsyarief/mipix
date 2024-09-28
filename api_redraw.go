@@ -18,7 +18,7 @@ type AccessorRedraw struct{}
 // By default, redraws are executed on every frame. If you
 // want to manage them more efficiently, you can do the
 // following:
-//  - Make sure to disable ebitengine's screen clear.
+//  - Make sure to disable Ebitengine's screen clear.
 //  - Opt into managed redraws with [AccessorRedraw.SetManaged](true).
 //  - Whenever a redraw becomes necessary, issue an
 //    [AccessorRedraw.Request]().
@@ -57,10 +57,13 @@ func (AccessorRedraw) Request() {
 // Returns whether a redraw is still pending. Notice that
 // besides explicit requests, a redraw can also be pending
 // due to a canvas resize, the modification of the scaling
-// properties, etc.
+// properties or others.
 //
-// You would typically use this method right at the start
-// [Game].Draw(), returning early if !mipix.Redraw().Pending().
+// This method is often used like this:
+//   func (game *Game) Draw(canvas *ebiten.Image) {
+//       if !mipix.Redraw().Pending() { return }
+//       // ...
+//   }
 func (AccessorRedraw) Pending() bool {
 	return pkgController.redrawPending()
 }

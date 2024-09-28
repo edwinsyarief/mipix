@@ -91,6 +91,11 @@ func (AccessorCamera) AreaF64() (minX, minY, maxX, maxY float64) {
 
 // Sets a new target zoom level. The transition from the current
 // zoom level to the new one is managed by a [zoomer.Zoomer].
+//
+// Important: very low zoom levels are extremely dangerous, as they
+// make the camera area grow towards infinity. In fact, mipix doesn't
+// expect you to go below 0.05, and stops trying to predict/optimize
+// canvas sizes for zoom transitions beyond that point.
 func (AccessorCamera) Zoom(newZoomLevel float64) {
 	pkgController.cameraZoom(newZoomLevel)
 }

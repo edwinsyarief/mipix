@@ -153,11 +153,14 @@ func (self *controller) getLogicalCanvas() *ebiten.Image {
 		refWidth  := max(width , self.logicalWidth  + 1) // +1 because smooth movement will..
 		refHeight := max(height, self.logicalHeight + 1) // ..force this in most games anyways
 		self.reusableCanvas = ebiten.NewImage(refWidth, refHeight)
-		return self.reusableCanvas
+		return utils.SubImage(self.reusableCanvas, 0, 0, width, height)
 	} else {
 		bounds := self.reusableCanvas.Bounds()
 		availableWidth, availableHeight := bounds.Dx(), bounds.Dy()
 		if width == availableWidth && height == availableHeight {
+			if ebiten.IsScreenClearedEveryFrame() {
+				self.reusableCanvas.Clear() // TODO: is this the best place to do it?
+			}
 			return self.reusableCanvas
 		} else if width <= availableWidth && height <= availableHeight {
 			canvas := utils.SubImage(self.reusableCanvas, 0, 0, width, height)
@@ -171,7 +174,7 @@ func (self *controller) getLogicalCanvas() *ebiten.Image {
 			refWidth  := int(math.Ceil(float64(width + 1.0)/zoomTarget))
 			refHeight := int(math.Ceil(float64(height + 1.0)/zoomTarget))
 			self.reusableCanvas = ebiten.NewImage(refWidth, refHeight)
-			return self.reusableCanvas
+			return utils.SubImage(self.reusableCanvas, 0, 0, width, height)
 		}
 	}
 }

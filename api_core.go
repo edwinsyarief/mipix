@@ -9,16 +9,22 @@ var _ fmt.Formatter
 
 // --- game ---
 
-// Equivalent to [ebiten.Game], but without the Layout() method.
-// Pixel art games operate with a logical base resolution set
-// through [SetResolution]() instead, and in mipix's case, the
-// logical canvas passed to draw is only big enough to comprise
-// the relevant area to be drawn.
+// The game interface for mipix, which is the equivalent to
+// [ebiten.Game] on Ebitengine but without the Layout() method.
 type Game interface {
-	// Updates the game logic
+	// Updates the game logic.
+	// 
+	// You can implement this almost exactly in the same
+	// way you would do for a pure Ebitengine game.
 	Update() error
 
-	// Draws the game contents
+	// Draws the game contents.
+	//
+	// Unlike Ebitengine, the canvas you receive from mipix can vary in
+	// size depending on the zoom level or camera position, but it always
+	// represents pixels one-to-one. Your mindset should be ignoring the
+	// canvas size and focusing on "rendering the game area specified by
+	// mipix.Camera().Area()".
 	Draw(logicalCanvas *ebiten.Image)
 }
 
@@ -97,8 +103,8 @@ type AccessorHiRes struct{}
 //   mipix.HiRes().Draw(target, source, x, y)
 func HiRes() AccessorHiRes { return AccessorHiRes{} }
 
-// Draws the given source into the target at the given logical coordinates.
-// These logical coordinates have the camera origin automatically subtracted.
+// Draws the source into the given target at the given global logical
+// coordinates (camera origin is automatically subtracted).
 //
 // Notice that mipix's main focus is not high resolution drawing, and this
 // method is not expected to be used more than a dozen times per frame.
@@ -207,9 +213,10 @@ func (self ScalingFilter) String() string {
 	}
 }
 
-// Set to true to completely fill the screen no matter how ugly
-// it gets. By default, stretching is disabled. In general,
-// you only want to expose stretching as a setting for players.
+// Set to true to avoid black borders and completely fill the screen
+// no matter how ugly it gets. By default, stretching is disabled. In
+// general you only want to expose stretching as a setting for players;
+// don't set it to true on your own.
 // 
 // Must only be called during initialization or [Game].Update().
 func (AccessorScaling) SetStretchingAllowed(allowed bool) {
@@ -229,7 +236,7 @@ func (AccessorScaling) GetStretchingAllowed() bool {
 // The first time you set a filter explicitly, its shader will also
 // be compiled. This means that this function can be effectively used
 // to precompile the relevant shaders. Otherwise, the shader will be
-// compiled the first time it's needed to draw something.
+// compiled the first time it has to be used.
 func (AccessorScaling) SetFilter(filter ScalingFilter) {
 	pkgController.scalingSetFilter(filter)
 }
@@ -263,7 +270,7 @@ func (AccessorConvert) ToLogicalCoords(x, y int) (float64, float64) {
 // similar functions to relative screen coordinates between 0 and 1. 
 //
 // Commonly used to see what is being clicked on the game's UI or
-// to apply shader and other fancy effects that depend on the cursor's
+// applying fancy shaders and effects that depend on the cursor's
 // relative position on screen.
 func (AccessorConvert) ToRelativeCoords(x, y int) (float64, float64) {
 	return pkgController.convertToRelativeCoords(x, y)
@@ -274,7 +281,7 @@ func (AccessorConvert) ToRelativeCoords(x, y int) (float64, float64) {
 // (GameWidth, GameHeight).
 //
 // Commonly used to see what is being clicked on the game's UI (when
-// the UI is made with pure pixel art).
+// the UI is pure pixel art).
 func (AccessorConvert) ToGameResolution(x, y int) (float64, float64) {
 	return pkgController.convertToGameResolution(x, y)
 }
@@ -290,10 +297,11 @@ type AccessorDebug struct{}
 func Debug() AccessorDebug { return AccessorDebug{} }
 
 // Similar to Printf debugging, but drawing the text on the top
-// left of the screen instead. Multi-line text is not supported,
-// use multiple Drawf commands in sequence instead.
+// left of the screen (instead of printing on the terminal).
+// Multi-line text is not supported; use multiple Drawf commands
+// in sequence instead.
 //
-// You can call this function at any point, even during [Game].Update.
+// You can call this function at any point, even during [Game].Update().
 // Strings will be queued and rendered at the end of the next draw.
 func (AccessorDebug) Drawf(format string, args ...any) {
 	pkgController.debugDrawf(format, args...)
@@ -309,10 +317,11 @@ func (AccessorDebug) Printfr(firstTick, lastTick uint64, format string, args ...
 	pkgController.debugPrintfr(firstTick, lastTick, format, args...)
 }
 
-// Similar to [fmt.Printf](), but only prints every N ticks, where N
-// is given as 'everyNTicks'. For example, in most games, using 
-// N = 60 will lead to print once every 60 ticks. 61 is prime.
+// Similar to [fmt.Printf](), but only prints every N ticks. For
+// example, in most games using N = 60 will lead to print once
+// per second.
 func (AccessorDebug) Printfe(everyNTicks uint64, format string, args ...any) {
+	// 61 is prime
 	pkgController.debugPrintfe(everyNTicks, format, args...)
 }
 

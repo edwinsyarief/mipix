@@ -34,7 +34,7 @@ func main() {
 ```
 
 Key highlights:
-- Our game struct must satisfy the [`mipix.Game`](https://pkg.go.dev/github.com/tinne26/mipix#Game) interface, which is just like ebitengine's, but without the `Layout()` method.
+- Our game struct must satisfy the [`mipix.Game`](https://pkg.go.dev/github.com/tinne26/mipix#Game) interface, which is just like Ebitengine's, but without the `Layout()` method.
 - You have to use [`mipix.Run()`](https://pkg.go.dev/github.com/tinne26/mipix#Run) instead of [`ebiten.RunGame()`](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#RunGame).
 - You must always set the game's resolution before [`mipix.Run()`](https://pkg.go.dev/github.com/tinne26/mipix#Run) through [`mipix.SetResolution()`](https://pkg.go.dev/github.com/tinne26/mipix#SetResolution). More advice on how to choose resolutions on the footnotes[^1].
 
