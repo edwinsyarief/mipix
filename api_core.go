@@ -39,7 +39,7 @@ func GetResolution() (width, height int) {
 }
 
 // Sets the game's base resolution. This defines the game's
-// aspect ratio and logical canvas size at whole coordinates
+// aspect ratio and logical canvas size at integer coordinates
 // and zoom = 1.0.
 func SetResolution(width, height int) {
 	pkgController.setResolution(width, height)
@@ -61,15 +61,16 @@ func QueueDraw(handler func(logicalCanvas *ebiten.Image)) {
 // drawing function and any other queued draws finish.
 //
 // The viewport passed to the handler is the full game screen canvas,
-// including any possibly unused borders, while the target is a subimage
+// including any possibly unused borders, while hiResCanvas is a subimage
 // corresponding to the active area of the viewport.
 //
 // Using this function is necessary if you want to render high resolution
-// graphics. This includes vectorial UI, some shader effects and others.
+// graphics. This includes vectorial text, some UI, smoothly moving entities,
+// shader effects and more.
 //
 // Must only be called from [Game].Draw() or successive draw callbacks.
 // See also [QueueDraw](). 
-func QueueHiResDraw(handler func(viewport, target *ebiten.Image)) {
+func QueueHiResDraw(handler func(viewport, hiResCanvas *ebiten.Image)) {
 	pkgController.queueHiResDraw(handler)
 }
 
@@ -78,9 +79,10 @@ func QueueHiResDraw(handler func(viewport, target *ebiten.Image)) {
 // mode, the game switches between windowed and fullscreen modes, or
 // the device scale factor changes (possibly due to a monitor change).
 //
-// This function is relevant if you need to redraw game borders manually
-// and efficiently or resize offscreens. Layout changes are also automatically
-// taken into account if you have [AccessorRedraw.SetManaged](true).
+// This function is only relevant if you need to redraw game borders manually
+// and efficiently or resize offscreens. Even if you have [AccessorRedraw.SetManaged](true),
+// you rarely need to worry about the state of the layout; any changes will
+// automatically trigger a redraw request.
 func LayoutHasChanged() bool {
 	return pkgController.layoutHasChanged
 }
@@ -250,7 +252,7 @@ func Convert() AccessorConvert { return AccessorConvert{} }
 
 // Transforms coordinates obtained from [ebiten.CursorPosition]() and similar
 // functions to coordinates within the game's logical space.
-func (AccessorConvert) ScreenToLogical(x, y int) (float64, float64) {
+func (AccessorConvert) ToLogicalCoords(x, y int) (float64, float64) {
 	return pkgController.convertToLogicalCoords(x, y)
 }
 
