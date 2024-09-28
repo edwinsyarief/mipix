@@ -15,6 +15,11 @@ func (self *controller) convertToLogicalCoords(x, y int) (float64, float64) {
 	return minX + rx*float64(self.logicalWidth)/self.zoomCurrent, minY + ry*float64(self.logicalHeight)/self.zoomCurrent
 }
 
+func (self *controller) convertToGameResolution(x, y int) (float64, float64) {
+	rx, ry := self.convertToRelativeCoords(x, y)
+	return rx*float64(self.logicalWidth), ry*float64(self.logicalHeight)
+}
+
 func (self *controller) hackyGetMargins() (float64, float64) {
 	if self.stretchingEnabled { return 0, 0 }
 	var hiWidth, hiHeight int

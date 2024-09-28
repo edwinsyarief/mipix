@@ -250,16 +250,33 @@ type AccessorConvert struct{}
 //   lx, ly := mipix.Convert().ToLogicalCoords(cx, cy)
 func Convert() AccessorConvert { return AccessorConvert{} }
 
-// Transforms coordinates obtained from [ebiten.CursorPosition]() and similar
-// functions to coordinates within the game's logical space.
+// Transforms coordinates obtained from [ebiten.CursorPosition]() and
+// similar functions to coordinates within the game's global logical
+// space.
+//
+// Commonly used to see what is being clicked on the game's world.
 func (AccessorConvert) ToLogicalCoords(x, y int) (float64, float64) {
 	return pkgController.convertToLogicalCoords(x, y)
 }
 
-// Transforms coordinates obtained from [ebiten.CursorPosition]() and similar
-// functions to relative coordinates between 0 and 1. 
+// Transforms coordinates obtained from [ebiten.CursorPosition]() and
+// similar functions to relative screen coordinates between 0 and 1. 
+//
+// Commonly used to see what is being clicked on the game's UI or
+// to apply shader and other fancy effects that depend on the cursor's
+// relative position on screen.
 func (AccessorConvert) ToRelativeCoords(x, y int) (float64, float64) {
 	return pkgController.convertToRelativeCoords(x, y)
+}
+
+// Transforms coordinates obtained from [ebiten.CursorPosition]() and 
+// similar functions to screen coordinates rescaled between (0, 0) and
+// (GameWidth, GameHeight).
+//
+// Commonly used to see what is being clicked on the game's UI (when
+// the UI is made with pure pixel art).
+func (AccessorConvert) ToGameResolution(x, y int) (float64, float64) {
+	return pkgController.convertToGameResolution(x, y)
 }
 
 // --- debug ---

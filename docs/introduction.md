@@ -2,6 +2,12 @@
 
 Key ideas to understand mipix's model, plus a few code samples to illustrate each concept.
 
+## Terminology
+
+You may skip this section, it's only a clarification for some people that get confused about some terms:
+- Logical vs high resolution: when talking about "logical" or "low resolution" spaces, coordinates or canvases, we refer to pure pixel units, where pixel art maps 1-to-1 to our canvas, space or coordinates. In other words: 1 unit of our canvas, space or coordinates match 1 pixel of our art. "High resolution" or "screen" spaces, coordinates and canvases, instead, have an arbitrary size and will require scaling or projections.
+- Filters: filters in the context of graphics often refer to shader effects like vignetting, lens, color transformations and others. In the context of mipix, though, the documentation always uses the word to refer to *scaling filters* instead, which are all about performing color interpolations for projections. These are completely different things, but it's easy to mix up the two due to the same word being used.
+
 ## Empty game and `mipix.SetResolution()`
 
 ```Golang
@@ -29,21 +35,21 @@ func main() {
 
 Key highlights:
 - Our game struct must satisfy the [`mipix.Game`](https://pkg.go.dev/github.com/tinne26/mipix#Game) interface, which is just like ebitengine's, but without the `Layout()` method.
-- You have to use `mipix.Run()` instead of `ebiten.Run()`.
-- You must always set the game's resolution before `mipix.Run()` through `mipix.SetResolution()`. More advice on how to choose resolutions on the footnotes[^1].
+- You have to use [`mipix.Run()`](https://pkg.go.dev/github.com/tinne26/mipix#Run) instead of [`ebiten.RunGame()`](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#RunGame).
+- You must always set the game's resolution before [`mipix.Run()`](https://pkg.go.dev/github.com/tinne26/mipix#Run) through [`mipix.SetResolution()`](https://pkg.go.dev/github.com/tinne26/mipix#SetResolution). More advice on how to choose resolutions on the footnotes[^1].
 
-[^1]: Based on [Steam's surveys](https://store.steampowered.com/hwsurvey) the most common display resolution is by far 1920x1080 (full HD), with over 50% share as of 2024. If you are going for a 16:9 aspect ratio, then you should choose a divisor of 1920x1080, like 128x72, 160x90, 320x180, 384x216 (\*), 480x270 (\*), 640x360, 960x540 (\*), etc (the ones marked with \* are not perfectly compatible with QHD). For other aspect ratios, you will typically go more square-ish (less wide), in which case black bars on the sides are unavoidable on common displays. In this case, you should only try to stick to divisors of the most common vertical resolutions. For example, 360 is the greatest common divisor of 1080 (full HD) and 1440 (QHD), so that would be a great choice. Other divisors like 180, 120, 90, 60 and so on would be equally good choices. This is only some basic advice, there are some exceptions to these rules.
+[^1]: Based on [Steam's surveys](https://store.steampowered.com/hwsurvey) the most common display resolution is by far 1920x1080 (full HD), with over 50% share as of 2024. If you are going for a 16:9 aspect ratio, then you should choose a resolution that's a divisor of 1920x1080, like 128x72, 160x90, 320x180, 384x216 (\*), 480x270 (\*), 640x360, 960x540 (\*) and so on (the ones marked with (\*) are not perfectly compatible with QHD). For other aspect ratios, you will typically go more square-ish (less wide), in which case black bars on the sides are unavoidable on common displays. Here you should try to stick to common divisors of the most used vertical resolutions instead. For example, 360 is the greatest common divisor of 1080 (full HD) and 1440 (QHD), so that would be a great choice. Other divisors like 180, 120, 90 and 60 would be equally good choices. This is just basic advice, there are some exceptions to these rules.
 
 ## The draw model
 
 While the `Update()` method should be coded pretty much in the same way for both raw Ebitengine and mipix, the `Draw()` method is a different story.
 
 Here are the two key points you really have to engrave in your soul:
-- The canvas you receive on draw represents pixels 1-to-1. Your pixel art must be drawn directly to the canvas, in its original size. Forget about display scaling factors and projections... *Just draw your pixel art*.
-- The canvas you receive on draw does *not* always have the same size, and it does *not* necessarily match the resolution you set at the start with `mipix.SetResolution(W, H)`. This can happen due to zoom effects (which mipix handles internally), but also something as simple as moving around. For example, even if your resolution is 128x72, if you move around in any direction you might have to render half a pixel for one of the borders of the canvas and half a pixel for the opposite one. In any case, you should not be in the mindset of "render my WxH canvas", but "render all the logical area requested by mipix".
+- The canvas you receive on `Draw()` represents pixels 1-to-1. Your pixel art must be drawn directly to the canvas, in its original size. Forget about display scaling factors and projections... *Just draw your pixel art*.
+- The canvas you receive on `Draw()` does *not* always have the same size, and it does *not* necessarily match the resolution you set for your game with `mipix.SetResolution(W, H)`. This can happen due to zoom effects (which mipix handles internally), but also something as simple as moving around. For example: even if your resolution is 128x72, if you move around in any direction you might have to render half a pixel for one of the borders of the canvas and another half for the opposite one. In any case, you should not be thinking about "render my WxH canvas", but "render all the logical area requested by mipix" instead.
 - You can still render *some* elements at decimal positions and in high resolution, but we will touch on that later.
 
-Again: draw things one-to-one, don't assume a specific canvas resolution, just draw the area that mipix asks you to.
+Summarizing: draw things one-to-one, don't assume a specific canvas resolution, draw the area that mipix asks you to.
 
 **Simple image draw**
 ```Golang
@@ -87,9 +93,9 @@ func (game *Game) Draw(canvas *ebiten.Image) {
 ```
 [*(full example code here)*](https://github.com/tinne26/mipix-examples/tree/main/src/tutorial/draw_image)
 
-Notice that the image will be drawn in the center of the screen in this example. This is because the camera, by default, points at (0, 0), and our image is 6x6 but drawn at (-3, -3).
+Notice that the image will be drawn at the center of the screen in this example. This is because the camera target defaults to (0, 0), and our image is 6x6 but we set it's origin at (-3, -3).
 
-That was the general code to draw an image, but there are some shorter ways using `mipix/utils` too:
+You can shorten the code using some [`mipix/utils`](https://pkg.go.dev/github.com/tinne26/mipix/utils) helpers, but make sure to understand the general approach first.
 ```Golang
 prawnGlobalRect := utils.Shift(Prawn.Bounds(), PrawnOX, PrawnOY)
 if prawnGlobalRect.Overlaps(camArea) {
@@ -124,9 +130,9 @@ func (game *Game) Draw(canvas *ebiten.Image) {
 
 Now that we have learned how to draw some content on screen, we can try to move the camera around.
 
-Most of mipix's functionality is grouped on "accessors". Accessors are just dummy types used to group together related functionality. The most important accessor is the `AccessorCamera`, which gives you access to the area for drawing, to notify new camera targets and to make the camera zoom and shake.
+Most of mipix's functionality is grouped on "accessors". Accessors are just dummy types used to group together related functionality. The most important accessor is the [`AccessorCamera`](https://pkg.go.dev/github.com/tinne26/mipix#AccessorCamera), which gives you access to zoom, shakes, camera position updates and the most important of all: the rect of the currently visible area, which is what we were already using in previous examples to know what to draw.
 
-Let's start with camera movement. We will fill the `Update()` method with some basic logic, while we leave a 2x2 square drawn on (0, 0) so we can notice the movement.
+So now let's see how to make the camera move. For this example, the `Update()` method will implement some basic movement logic, while the `Draw()` method will just render a small square at (0, 0) that can serve as a visual reference while we move around.
 
 ```Golang
 package main
@@ -188,11 +194,67 @@ func main() {
 
 The camera following behavior is defined by the [`Tracker`](https://pkg.go.dev/github.com/tinne26/mipix#AccessorCamera.SetTracker) interface, which you can customize. You can also customize camera zooms and shakes.
 
+## Cursor and touch positions
+
+When you are using mipix, mipix is requesting Ebitengine the highest resolution canvas it can possibly get, and then handling scaling internally, trying to not bother you with it. Unfortunately, there are still *some* visible side effects to this internal trickery. In particular, `ebiten.CursorPosition()` and screen touches will stop behaving as you might expect, since they will return coordinates for a high resolution screen that's kinda outside your mental model when working with mipix.
+
+To make life easier in the face of all this, mipix exposes an [`AccessorConvert`](https://pkg.go.dev/github.com/tinne26/mipix#AccessorConvert) with multiple functions to convert coordinates from high resolution to your logical space.
+
+```Golang
+package main
+
+import "image/color"
+
+import "github.com/hajimehoshi/ebiten/v2"
+import "github.com/tinne26/mipix"
+
+type Game struct {
+	HiCursorX, HiCursorY int
+	LoCursorX, LoCursorY float64
+	LoRelativeX, LoRelativeY float64
+	LoGameX, LoGameY float64
+}
+
+func (game *Game) Update() error {
+	hiX, hiY := ebiten.CursorPosition()
+	loX, loY := mipix.Convert().ToLogicalCoords(hiX, hiY)
+	reX, reY := mipix.Convert().ToRelativeCoords(hiX, hiY)
+	gmX, gmY := mipix.Convert().ToGameResolution(hiX, hiY)
+	game.HiCursorX, game.HiCursorY = hiX, hiY
+	game.LoCursorX, game.LoCursorY = loX, loY
+	game.LoRelativeX, game.LoRelativeY = reX, reY
+	game.LoGameX, game.LoGameY = gmX, gmY
+	return nil
+}
+
+func (game *Game) Draw(canvas *ebiten.Image) {
+	canvas.Fill(color.RGBA{128, 128, 128, 255})
+	mipix.Debug().Drawf("[ Cursor Position ]")
+	mipix.Debug().Drawf("High-res screen: (%d, %d)", game.HiCursorX, game.HiCursorY)
+	mipix.Debug().Drawf("Low-res relative: (%.02f, %.02f)", game.LoRelativeX, game.LoRelativeY)
+	mipix.Debug().Drawf("Low-res screen: (%.02f, %.02f)", game.LoGameX, game.LoGameY)
+	mipix.Debug().Drawf("Low-res global: (%.02f, %.02f)", game.LoCursorX, game.LoCursorY)
+}
+
+func main() {
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	mipix.SetResolution(100, 100)
+	err := mipix.Run(&Game{})
+	if err != nil { panic(err) }
+}
+```
+
+> [!TIP]
+> *You can try this example directly from your terminal with:  
+> `go run github.com/tinne26/mipix-examples/src/tutorial/cursor_position`*
+
+In this example, you can also see some debug functions, which are very useful for quick information display, both within the game or on your terminal.
+
 ## Multi-layered drawing
 
-You can also combine logical draws with high resolution draws when needed. Common uses for high resolution drawing are UI (text in particular), smoothly moving elements and shader effects. The next example includes both text rendering and a smoothly moving player.
+While mipix focuses on low resolution rendering, you can also combine logical draws with high resolution draws when needed. Common uses for high resolution drawing are vectorial text rendering and UI, smoothly moving elements and shader effects. The next example includes both text rendering and a smoothly moving player.
 
-The way to achieve these interleaved draws in mipix is to use `mipix.QueueDraw()` and `mipix.QueueHiResDraw()`, which receive the drawing functions as parameters. These queueing functions can be invoked during draw, and are called as additional drawing stages or layers once the current drawing logic is done.
+In order to make these interleaved draws, mipix exposes [`mipix.QueueDraw()`](https://pkg.go.dev/github.com/tinne26/mipix#QueueDraw) and [`mipix.QueueHiResDraw()`](https://pkg.go.dev/github.com/tinne26/mipix#QueueHiResDraw), which receive the drawing functions as parameters. These queueing functions can be invoked at any point of the draw stage, and will be triggered in order once the current drawing logic finishes.
 
 ```Golang
 package main
@@ -224,36 +286,13 @@ type Game struct {
 	FontSize float64
 }
 
-// Same concept as the camera movement example, nothing new here
 func (game *Game) Update() error {
-	// detect directions
-	up    := ebiten.IsKeyPressed(ebiten.KeyArrowUp)
-	down  := ebiten.IsKeyPressed(ebiten.KeyArrowDown)
-	left  := ebiten.IsKeyPressed(ebiten.KeyArrowLeft)
-	right := ebiten.IsKeyPressed(ebiten.KeyArrowRight)
-	if up   && down  { up  , down  = false, false }
-	if left && right { left, right = false, false }
-	
-	// apply diagonal speed reduction if needed
-	var speed float64 = 0.2
-	if (up || down) && (left || right) {
-		speed *= 0.7
-	}
-
-	// apply speed to camera target
-	if up    { game.PlayerCY -= speed }
-	if down  { game.PlayerCY += speed }
-	if left  { game.PlayerCX -= speed }
-	if right { game.PlayerCX += speed }
-
-	// notify new camera target
-	mipix.Camera().NotifyCoordinates(game.PlayerCX, game.PlayerCY)
-
-	return nil
+	// elided for brevity: same as the camera example but
+	// using PlayerCX/PlayerCY instead of LookAtX/LookAtY
 }
 
-// This draw function exemplifies how to combine low and
-// high resolution draws.
+// This draw function exemplifies how to combine low
+// and high resolution draws with QueueHiResDraw()
 func (game *Game) Draw(canvas *ebiten.Image) {
 	// fill background
 	canvas.Fill(utils.RGB(128, 207, 169))
@@ -273,7 +312,7 @@ func (game *Game) Draw(canvas *ebiten.Image) {
 	})
 
 	// you could interleave more mipix.QueueDraw()
-	// low-res draws here if you needed that
+	// low-res draws here if you needed it
 
 	// queue text rendering on high resolution too
 	mipix.QueueHiResDraw(game.DrawText)
@@ -329,14 +368,14 @@ func main() {
 ```
 
 > [!TIP]
-> Example above can be run from your terminal with:
-> `go run github.com/tinne26/mipix-examples/src/tutorial/multi_layered`
+> *You can try this example directly from your terminal with:  
+> `go run github.com/tinne26/mipix-examples/src/tutorial/multi_layered`*
 
-It's important to notice that combining logical and high resolution draws has some caveats: some elements that are contiguous in logical space might display slight gaps after interleaving low and high resolution draws (due to necessary internal projections). I might implement some techniques to avoid this in the future, but they would be opt-in and expensive, as they can basically only be post-corrections.
+It's important to notice that combining logical and high resolution draws has some caveats: some elements that are contiguous in logical space might display slight gaps after interleaving low and high resolution draws (due to necessary internal projections). I might implement some techniques to avoid this in the future, but they would be opt-in and expensive, as they can basically only be applied as post-corrections.
 
-## This is enough
+## This is enough for today
 
-While mipix has quite a few more features, they aren't particularly important to discuss here; you can figure them out by taking a [look at the API](https://pkg.go.dev/github.com/tinne26/mipix). The drawing model is the only essential part to understand when using mipix, and that has been reasonably covered already.
+While mipix still packs a few more features, they aren't particularly important to discuss here; you can figure them out by taking a [look at the API docs](https://pkg.go.dev/github.com/tinne26/mipix). The drawing model is the only essential part to understand when using mipix, and I think that has been reasonably covered already. If you need more code samples, the [mipix-examples](https://github.com/tinne26/mipix-examples) repository contains a few more programs and even small games that you can try online.
 
-If you need more code samples, the [mipix-examples](https://github.com/tinne26/mipix-examples) contains a few more programs and even small games that you can try online. Hopefully all this will be enough to get you started, but if you have any additional doubts or questions, don't hesitate to reach out! I should be fairly responsive both on Github discussions and Ebitengine's discord!
+Hopefully this should be enough to get you started, but if you have any other questions don't hesitate to reach out! I should be fairly responsive both on Github discussions and Ebitengine's discord.
 
