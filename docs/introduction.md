@@ -246,7 +246,7 @@ func main() {
 
 > [!TIP]
 > *You can try this example directly from your terminal with:  
-> `go run github.com/tinne26/mipix-examples/src/tutorial/cursor_position`*
+> `go run github.com/tinne26/mipix-examples/src/tutorial/cursor_position@latest`*
 
 In this example, you can also see some debug functions, which are very useful for quick information display, both within the game or on your terminal.
 
@@ -369,7 +369,7 @@ func main() {
 
 > [!TIP]
 > *You can try this example directly from your terminal with:  
-> `go run github.com/tinne26/mipix-examples/src/tutorial/multi_layered`*
+> `go run github.com/tinne26/mipix-examples/src/tutorial/multi_layered@latest`*
 
 It's important to notice that combining logical and high resolution draws has some caveats: some elements that are contiguous in logical space might display slight gaps after interleaving low and high resolution draws (due to necessary internal projections). I might implement some techniques to avoid this in the future, but they would be opt-in and expensive, as they can basically only be applied as post-corrections.
 
