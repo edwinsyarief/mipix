@@ -5,8 +5,8 @@ Key ideas to understand mipix's model, plus a few code samples to illustrate eac
 ## Terminology
 
 You may skip this section, it's only a clarification for some people that get confused about some terms:
-- Logical vs high resolution: when talking about "logical" or "low resolution" spaces, coordinates or canvases, we refer to pure pixel units, where pixel art maps 1-to-1 to our canvas, space or coordinates. In other words: 1 unit of our canvas, space or coordinates match 1 pixel of our art. "High resolution" or "screen" spaces, coordinates and canvases, instead, have an arbitrary size and will require scaling or projections.
-- Filters: filters in the context of graphics often refer to shader effects like vignetting, lens, color transformations and others. In the context of mipix, though, the documentation always uses the word to refer to *scaling filters* instead, which are all about performing color interpolations for projections. These are completely different things, but it's easy to mix up the two due to the same word being used.
+- *Logical vs high resolution*: when talking about "logical" or "low resolution" spaces, coordinates or canvases, we refer to pure pixel units, where pixel art maps 1-to-1 to our canvas, space or coordinates. In other words: 1 unit of our canvas, space or coordinates match 1 pixel of our art. "High resolution" or "screen" spaces, coordinates and canvases, instead, have an arbitrary size and will require scaling or projections.
+- *Filters*: filters in the context of graphics often refer to shader effects like vignetting, lens, color transformations and others. In the context of mipix, though, the documentation always uses the word to refer to *scaling filters* instead, which are all about performing color interpolations for projections. These are completely different things, but it's easy to mix them up due to the same word being used.
 
 ## Empty game and `mipix.SetResolution()`
 
@@ -46,7 +46,7 @@ While the `Update()` method should be coded pretty much in the same way for both
 
 Here are the two key points you really have to engrave in your soul:
 - The canvas you receive on `Draw()` represents pixels 1-to-1. Your pixel art must be drawn directly to the canvas, in its original size. Forget about display scaling factors and projections... *Just draw your pixel art*.
-- The canvas you receive on `Draw()` does *not* always have the same size, and it does *not* necessarily match the resolution you set for your game with `mipix.SetResolution(W, H)`. This can happen due to zoom effects (which mipix handles internally), but also something as simple as moving around. For example: even if your resolution is 128x72, if you move around in any direction you might have to render half a pixel for one of the borders of the canvas and another half for the opposite one. In any case, you should not be thinking about "render my WxH canvas", but "render all the logical area requested by mipix" instead.
+- The canvas you receive on `Draw()` does *not* always have the same size, and it does *not* necessarily match the resolution you set for your game with `mipix.SetResolution(W, H)`. This can happen due to zoom effects (which mipix handles internally), but also something as simple as moving around. For example: even if your resolution is 128x72, if you move around in any direction you might have to render half a pixel for one of the borders of the canvas and another half for the opposite one.  In these cases, even without zoom, mipix would ask you to draw a 129x72, 128x73 or 129x73 area. In conclusion: you should not be thinking about "render my WxH canvas", but "render all the logical area requested by mipix" instead (which is given by `mipix.Camera().Area()`).
 - You can still render *some* elements at decimal positions and in high resolution, but we will touch on that later.
 
 Summarizing: draw things one-to-one, don't assume a specific canvas resolution, draw the area that mipix asks you to.
@@ -93,7 +93,7 @@ func (game *Game) Draw(canvas *ebiten.Image) {
 ```
 [*(full example code here)*](https://github.com/tinne26/mipix-examples/tree/main/src/tutorial/draw_image)
 
-Notice that the image will be drawn at the center of the screen in this example. This is because the camera target defaults to (0, 0), and our image is 6x6 but we set it's origin at (-3, -3).
+Notice that the image will be drawn at the center of the screen in this example. This is because the camera target defaults to (0, 0), and our image is 6x6 but we set its origin at (-3, -3).
 
 You can shorten the code using some [`mipix/utils`](https://pkg.go.dev/github.com/tinne26/mipix/utils) helpers, but make sure to understand the general approach first.
 ```Golang
