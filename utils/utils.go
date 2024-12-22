@@ -1,10 +1,12 @@
 package utils
 
-import "image"
-import "image/color"
+import (
+	"image"
+	"image/color"
 
-import "github.com/tinne26/mipix/internal"
-import "github.com/hajimehoshi/ebiten/v2"
+	"github.com/edwinsyarief/mipix/internal"
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 // Alias for image.Rectangle.
 type Rectangle = image.Rectangle
@@ -26,14 +28,15 @@ func FillOver(target *ebiten.Image, fillColor color.Color) {
 // 0 is always reserved for transparent, and higher values will
 // index the given colors. If no colors are given, 1 will be
 // white by default. Example usage:
-//   heart := utils.MaskToImage([]uint8{
-//       0, 1, 1, 0, 1, 1, 0,
-//       1, 1, 1, 1, 1, 1, 1,
-//       1, 1, 1, 1, 1, 1, 1,
-//       0, 1, 1, 1, 1, 1, 0,
-//       0, 0, 1, 1, 1, 0, 0,
-//       0, 0, 0, 1, 0, 0, 0,
-//   }, 7, utils.RGB(255, 0, 0))
+//
+//	heart := utils.MaskToImage([]uint8{
+//	    0, 1, 1, 0, 1, 1, 0,
+//	    1, 1, 1, 1, 1, 1, 1,
+//	    1, 1, 1, 1, 1, 1, 1,
+//	    0, 1, 1, 1, 1, 1, 0,
+//	    0, 0, 1, 1, 1, 0, 0,
+//	    0, 0, 0, 1, 0, 0, 0,
+//	}, 7, utils.RGB(255, 0, 0))
 func MaskToImage(width int, mask []uint8, colors ...color.RGBA) *ebiten.Image {
 	return MaskToImageWithOrigin(0, 0, width, mask, colors...)
 }
@@ -45,26 +48,26 @@ func MaskToImageWithOrigin(ox, oy int, width int, mask []uint8, colors ...color.
 	if width <= 0 {
 		panic("expected width > 0")
 	}
-	height := len(mask)/width
+	height := len(mask) / width
 	if height*width != len(mask) {
 		panic("given width can't split given mask into rows of equal length")
 	}
 
 	// no colors fallback
 	if len(colors) == 0 {
-		colors = []color.RGBA{ color.RGBA{255, 255, 255, 255} }
+		colors = []color.RGBA{{255, 255, 255, 255}}
 	}
 
 	// create image
-	rgba := image.NewRGBA(image.Rect(ox, oy, ox + width, oy + height))
+	rgba := image.NewRGBA(image.Rect(ox, oy, ox+width, oy+height))
 	for index, value := range mask {
 		pixelIndex := index << 2
 		if value != 0 {
-			clr := colors[value - 1]
-			rgba.Pix[pixelIndex + 0] = clr.R
-			rgba.Pix[pixelIndex + 1] = clr.G
-			rgba.Pix[pixelIndex + 2] = clr.B
-			rgba.Pix[pixelIndex + 3] = clr.A
+			clr := colors[value-1]
+			rgba.Pix[pixelIndex+0] = clr.R
+			rgba.Pix[pixelIndex+1] = clr.G
+			rgba.Pix[pixelIndex+2] = clr.B
+			rgba.Pix[pixelIndex+3] = clr.A
 		}
 	}
 
@@ -80,12 +83,12 @@ func Shift(bounds image.Rectangle, x, y int) image.Rectangle {
 }
 
 // Returns the GeoM that would be used to draw the given image
-// on the logical mipix canvas at the logical global coordinates
+// on the logical ebipixel canvas at the logical global coordinates
 // (x, y).
 func GeoMAt(source *ebiten.Image, x, y int) ebiten.GeoM {
 	var geom ebiten.GeoM
 	localXY := image.Pt(x, y).Sub(internal.BridgedCameraOrigin)
-	localXY  = localXY.Add(source.Bounds().Min) // *
+	localXY = localXY.Add(source.Bounds().Min) // *
 	// * origin is not automatically applied when using
 	//   an image as source, so we need to add it manually
 	geom.Translate(float64(localXY.X), float64(localXY.Y))
@@ -95,12 +98,13 @@ func GeoMAt(source *ebiten.Image, x, y int) ebiten.GeoM {
 // Returns the image options with a GeoM set up to draw the
 // given image at the logical global coordinates (x, y).
 // Makes basic image drawing simpler. Example code:
-//   opts := utils.DrawImageOptionsAt(myImage, 8, 8)
-//   canvas.DrawImage(myImage, &opts)
+//
+//	opts := utils.DrawImageOptionsAt(myImage, 8, 8)
+//	canvas.DrawImage(myImage, &opts)
 func DrawImageOptionsAt(source *ebiten.Image, x, y int) ebiten.DrawImageOptions {
 	var opts ebiten.DrawImageOptions
 	localXY := image.Pt(x, y).Sub(internal.BridgedCameraOrigin)
-	localXY  = localXY.Add(source.Bounds().Min) // *
+	localXY = localXY.Add(source.Bounds().Min) // *
 	// * origin is not automatically applied when using
 	//   an image as source, so we need to add it manually
 	opts.GeoM.Translate(float64(localXY.X), float64(localXY.Y))
@@ -155,7 +159,7 @@ func RGBA(r, g, b, a uint8) color.RGBA {
 // This is the format that [ebiten.Vertex] expects.
 func ColorToF32(clr color.Color) (r, g, b, a float32) {
 	r16, g16, b16, a16 := clr.RGBA()
-	return float32(r16)/65535.0, float32(g16)/65535.0, float32(b16)/65535.0, float32(a16)/65535.0
+	return float32(r16) / 65535.0, float32(g16) / 65535.0, float32(b16) / 65535.0, float32(a16) / 65535.0
 }
 
 // // Similar to [ebiten.IsKeyPressed](), but allowing multiple keys.

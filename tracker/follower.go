@@ -1,16 +1,19 @@
 package tracker
 
-import "github.com/tinne26/mipix/internal"
+import (
+	ebimath "github.com/edwinsyarief/ebi-math"
+	"github.com/edwinsyarief/mipix/internal"
+)
 
 type follower struct {
 	engaged bool
-	
+
 	elapsedMatch float64
-	elapsedHalt float64
-	
+	elapsedHalt  float64
+
 	matchRequiredDuration float64
-	haltRequiredDuration float64
-	matchErrorMargin float64
+	haltRequiredDuration  float64
+	matchErrorMargin      float64
 
 	initialized bool
 }
@@ -27,9 +30,11 @@ func (self *follower) initialize() {
 }
 
 func (self *follower) SetTimes(engage, disengage float64) {
-	if engage < disengage { panic("engage time must be >= disengage") }
+	if engage < disengage {
+		panic("engage time must be >= disengage")
+	}
 	self.matchRequiredDuration = engage
-	self.haltRequiredDuration  = disengage
+	self.haltRequiredDuration = disengage
 }
 
 func (self *follower) IsEngaged() bool {
@@ -37,16 +42,18 @@ func (self *follower) IsEngaged() bool {
 }
 
 func (self *follower) Update(changeX, changeY, prevSpeedX, prevSpeedY float64) {
-	if !self.initialized { self.initialize() }
+	if !self.initialized {
+		self.initialize()
+	}
 
 	// helper values
-	updateDelta := 1.0/float64(internal.GetUPS())
-	speedX, speedY := internal.Abs(changeX/updateDelta), internal.Abs(changeY/updateDelta)
+	updateDelta := 1.0 / float64(internal.GetUPS())
+	speedX, speedY := ebimath.Abs(changeX/updateDelta), ebimath.Abs(changeY/updateDelta)
 	w, h := internal.GetResolution()
 	w64, h64 := float64(w), float64(h)
 	zoom := internal.GetCurrentZoom()
 	normWidth, normHeight := w64/zoom, h64/zoom
-	
+
 	// update elapsed match / halt
 	if speedX/normWidth <= self.matchErrorMargin && speedY/normHeight <= self.matchErrorMargin {
 		self.elapsedHalt += updateDelta
@@ -54,10 +61,10 @@ func (self *follower) Update(changeX, changeY, prevSpeedX, prevSpeedY float64) {
 		self.elapsedHalt = 0.0
 	}
 	halted := (self.elapsedHalt >= self.haltRequiredDuration)
-	
+
 	if !halted && self.elapsedMatch < self.matchRequiredDuration {
-		normSpeedUDiffX := internal.Abs(speedX - internal.Abs(prevSpeedX))/normWidth
-		normSpeedUDiffY := internal.Abs(speedY - internal.Abs(prevSpeedY))/normWidth
+		normSpeedUDiffX := ebimath.Abs(speedX-ebimath.Abs(prevSpeedX)) / normWidth
+		normSpeedUDiffY := ebimath.Abs(speedY-ebimath.Abs(prevSpeedY)) / normWidth
 		if normSpeedUDiffX <= self.matchErrorMargin && normSpeedUDiffY <= self.matchErrorMargin {
 			self.elapsedMatch += updateDelta
 		} else {
@@ -66,10 +73,10 @@ func (self *follower) Update(changeX, changeY, prevSpeedX, prevSpeedY float64) {
 	} else if halted {
 		self.elapsedMatch = 0.0
 	}
-	
+
 	if halted || self.elapsedMatch < self.matchRequiredDuration {
 		self.engaged = false
 	} else {
 		self.engaged = true
 	}
-}	
+}

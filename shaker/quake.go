@@ -1,8 +1,11 @@
 package shaker
 
-import "math/rand/v2"
+import (
+	"math/rand/v2"
 
-import "github.com/tinne26/mipix/internal"
+	ebimath "github.com/edwinsyarief/ebi-math"
+	"github.com/edwinsyarief/mipix/internal"
+)
 
 var _ Shaker = (*Quake)(nil)
 
@@ -14,26 +17,28 @@ var _ Shaker = (*Quake)(nil)
 //
 // The implementation is tick-rate independent.
 type Quake struct {
-	x float64 // [-0.5, +0.5]
-	y float64 // [-0.5, +0.5]
-	fromX, fromY float64
-	towardsX, towardsY float64 // can be cut short from [-0.5, 0.5]
+	x                    float64 // [-0.5, +0.5]
+	y                    float64 // [-0.5, +0.5]
+	fromX, fromY         float64
+	towardsX, towardsY   float64 // can be cut short from [-0.5, 0.5]
 	xSpeedIni, xSpeedEnd float64
 	ySpeedIni, ySpeedEnd float64
-	minSpeed, maxSpeed float64 // absolute values
-	axisRatio float64
-	zoomCompensation float64
-	initialized bool
+	minSpeed, maxSpeed   float64 // absolute values
+	axisRatio            float64
+	zoomCompensation     float64
+	initialized          bool
 }
 
 func (self *Quake) ensureInitialized() {
-	if self.initialized { return }
+	if self.initialized {
+		return
+	}
 	self.initialized = true
 	if self.minSpeed == 0.0 {
 		self.minSpeed = 5.0
 	}
 	if self.maxSpeed == 0.0 {
-		self.maxSpeed = self.minSpeed*4.6
+		self.maxSpeed = self.minSpeed * 4.6
 	}
 	if self.axisRatio == 0.0 {
 		self.axisRatio = 0.0225
@@ -49,8 +54,12 @@ func (self *Quake) ensureInitialized() {
 // This method allows you to configure those speeds.
 // The default values are (5.0, 23.0).
 func (self *Quake) SetSpeedRange(minSpeed, maxSpeed float64) {
-	if minSpeed <= 0.0 { panic("minSpeed must be strictly positive") }
-	if maxSpeed < minSpeed { panic("maxSpeed must be >= than minSpeed") }
+	if minSpeed <= 0.0 {
+		panic("minSpeed must be strictly positive")
+	}
+	if maxSpeed < minSpeed {
+		panic("maxSpeed must be >= than minSpeed")
+	}
 	self.minSpeed, self.maxSpeed = minSpeed, maxSpeed
 }
 
@@ -59,10 +68,12 @@ func (self *Quake) SetSpeedRange(minSpeed, maxSpeed float64) {
 // example, if you have a resolution of 32x32 and set a motion
 // scale of 0.25, the shaking will range within [-4, +4] in both
 // axes.
-// 
+//
 // Defaults to 0.0225.
 func (self *Quake) SetMotionScale(axisScalingFactor float64) {
-	if axisScalingFactor <= 0.0 { panic("axisScalingFactor must be strictly positive") }
+	if axisScalingFactor <= 0.0 {
+		panic("axisScalingFactor must be strictly positive")
+	}
 	self.axisRatio = axisScalingFactor
 }
 
@@ -89,29 +100,29 @@ func (self *Quake) GetShakeOffsets(level float64) (float64, float64) {
 		self.towardsY, self.ySpeedIni, self.ySpeedEnd = self.reroll(0.0, 0.0)
 		return 0.0, 0.0
 	}
-	
+
 	// update x/y
-	updateDelta := 1.0/float64(internal.GetUPS())
+	updateDelta := 1.0 / float64(internal.GetUPS())
 	t := internal.TAt(self.x, self.fromX, self.towardsX)
-	self.x += internal.LinearInterp(self.xSpeedIni, self.xSpeedEnd, t)*updateDelta
+	self.x += internal.LinearInterp(self.xSpeedIni, self.xSpeedEnd, t) * updateDelta
 	if internal.TAt(self.x, self.fromX, self.towardsX) >= 1.0 {
 		self.fromX = self.x
 		self.towardsX, self.xSpeedIni, self.xSpeedEnd = self.reroll(self.x, self.xSpeedEnd)
 	}
 	t = internal.TAt(self.y, self.fromY, self.towardsY)
-	self.y += internal.LinearInterp(self.ySpeedIni, self.ySpeedEnd, t)*updateDelta
+	self.y += internal.LinearInterp(self.ySpeedIni, self.ySpeedEnd, t) * updateDelta
 	if internal.TAt(self.y, self.fromY, self.towardsY) >= 1.0 {
 		self.fromY = self.y
 		self.towardsY, self.ySpeedIni, self.ySpeedEnd = self.reroll(self.y, self.ySpeedEnd)
 	}
-	
+
 	// translate interpolated point to real screen offsets
 	w, h := internal.GetResolution()
 	w64, h64 := float64(w), float64(h)
 	zoom := internal.GetCurrentZoom()
 	xOffset, yOffset := self.x*w64*self.axisRatio, self.y*h64*self.axisRatio
 	if self.zoomCompensation != 0.0 {
-		compensatedZoom := 1.0 + (zoom - 1.0)*self.zoomCompensation
+		compensatedZoom := 1.0 + (zoom-1.0)*self.zoomCompensation
 		xOffset /= compensatedZoom
 		yOffset /= compensatedZoom
 	}
@@ -119,22 +130,22 @@ func (self *Quake) GetShakeOffsets(level float64) (float64, float64) {
 		xOffset *= level
 		yOffset *= level
 	}
-	
+
 	return xOffset, yOffset
 }
 
 func (self *Quake) reroll(value, speed float64) (target, iniSpeed, endSpeed float64) {
 	if value > 0.0 || (value == 0.0 && rand.Float64() < 0.5) {
 		target = -(0.05 + rand.Float64()*0.45)
-		iniSpeed = -max(internal.Abs(speed), self.minSpeed)
-		endSpeed = -(self.minSpeed + rand.Float64()*(self.maxSpeed - self.minSpeed))
-		speedDiff := (endSpeed - iniSpeed)*(internal.Abs(target - value))
+		iniSpeed = -max(ebimath.Abs(speed), self.minSpeed)
+		endSpeed = -(self.minSpeed + rand.Float64()*(self.maxSpeed-self.minSpeed))
+		speedDiff := (endSpeed - iniSpeed) * (ebimath.Abs(target - value))
 		endSpeed = iniSpeed + speedDiff
 	} else { // value < 0.0
 		target = (0.05 + rand.Float64()*0.45)
-		iniSpeed = max(internal.Abs(speed), self.minSpeed)
-		endSpeed = (self.minSpeed + rand.Float64()*(self.maxSpeed - self.minSpeed))
-		speedDiff := (endSpeed - iniSpeed)*(internal.Abs(target - value))
+		iniSpeed = max(ebimath.Abs(speed), self.minSpeed)
+		endSpeed = (self.minSpeed + rand.Float64()*(self.maxSpeed-self.minSpeed))
+		speedDiff := (endSpeed - iniSpeed) * (ebimath.Abs(target - value))
 		endSpeed = iniSpeed + speedDiff
 	}
 	return

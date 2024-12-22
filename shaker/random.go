@@ -1,8 +1,10 @@
 package shaker
 
-import "math/rand/v2"
+import (
+	"math/rand/v2"
 
-import "github.com/tinne26/mipix/internal"
+	"github.com/edwinsyarief/mipix/internal"
+)
 
 var _ Shaker = (*Random)(nil)
 
@@ -16,13 +18,13 @@ var _ Shaker = (*Random)(nil)
 // The implementation is tick-rate independent.
 type Random struct {
 	fromX, fromY float64
-	toX, toY float64
-	
-	elapsed float64
-	travelTime float64
-	axisRatio float64
+	toX, toY     float64
+
+	elapsed         float64
+	travelTime      float64
+	axisRatio       float64
 	zoomCompensated bool
-	initialized bool
+	initialized     bool
 }
 
 func (self *Random) ensureInitialized() {
@@ -38,16 +40,17 @@ func (self *Random) ensureInitialized() {
 	}
 }
 
-
 // To preserve resolution independence, shakers often simulate the
 // shaking within a [-0.5, 0.5] space and only later scale it. For
 // example, if you have a resolution of 32x32 and set a motion
 // scale of 0.25, the shaking will range within [-4, +4] in both
 // axes.
-// 
+//
 // Defaults to 0.02.
 func (self *Random) SetMotionScale(axisScalingFactor float64) {
-	if axisScalingFactor <= 0.0 { panic("axisScalingFactor must be strictly positive") }
+	if axisScalingFactor <= 0.0 {
+		panic("axisScalingFactor must be strictly positive")
+	}
 	self.axisRatio = axisScalingFactor
 }
 
@@ -63,7 +66,9 @@ func (self *Random) SetZoomCompensated(compensated bool) {
 
 // Change the travel time between generated shake points. Defaults to 0.1.
 func (self *Random) SetTravelTime(travelTime float64) {
-	if travelTime <= 0 { panic("travel time must be strictly positive") }
+	if travelTime <= 0 {
+		panic("travel time must be strictly positive")
+	}
 	self.travelTime = travelTime
 }
 
@@ -77,26 +82,28 @@ func (self *Random) GetShakeOffsets(level float64) (float64, float64) {
 		return 0.0, 0.0
 	}
 
-	t := self.elapsed/self.travelTime
+	t := self.elapsed / self.travelTime
 	x := internal.QuadInOutInterp(self.fromX, self.toX, t)
 	y := internal.QuadInOutInterp(self.fromY, self.toY, t)
-	self.elapsed += 1.0/float64(internal.GetUPS())
+	self.elapsed += 1.0 / float64(internal.GetUPS())
 	if self.elapsed >= self.travelTime {
 		self.rollNewTarget()
 		for self.elapsed >= self.travelTime {
 			self.elapsed -= self.travelTime
 		}
-	} 
+	}
 
 	w, h := internal.GetResolution()
-	axisRange := float64(min(w, h))*self.axisRatio
+	axisRange := float64(min(w, h)) * self.axisRatio
 	x, y = x*axisRange, y*axisRange
 	if self.zoomCompensated {
 		currentZoom := internal.GetCurrentZoom()
 		x /= currentZoom
 		y /= currentZoom
 	}
-	if level == 1.0 { return x, y }
+	if level == 1.0 {
+		return x, y
+	}
 	return internal.CubicSmoothstepInterp(0, x, level), internal.CubicSmoothstepInterp(0, y, level)
 }
 

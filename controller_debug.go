@@ -1,9 +1,13 @@
-package mipix
+package ebipixel
 
-import "fmt"
+import (
+	"fmt"
 
-import "github.com/hajimehoshi/ebiten/v2"
-import "github.com/hajimehoshi/ebiten/v2/ebitenutil" // not desirable, but let's ignore it for the moment
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+)
+
+// not desirable, but let's ignore it for the moment
 
 func (self *controller) debugDrawf(format string, args ...any) {
 	self.debugInfo = append(self.debugInfo, fmt.Sprintf(format, args...))
@@ -16,7 +20,7 @@ func (self *controller) debugPrintfr(firstTick, lastTick uint64, format string, 
 }
 
 func (self *controller) debugPrintfe(everyNTicks uint64, format string, args ...any) {
-	if self.currentTick % everyNTicks == 0 {
+	if self.currentTick%everyNTicks == 0 {
 		fmt.Printf(format, args...)
 	}
 }
@@ -30,13 +34,15 @@ func (self *controller) debugPrintfk(key ebiten.Key, format string, args ...any)
 // --- internal ---
 
 func (self *controller) debugDrawAll(target *ebiten.Image) {
-	if len(self.debugInfo) == 0 { return }
+	if len(self.debugInfo) == 0 {
+		return
+	}
 
 	// determine offscreen size
 	targetBounds := target.Bounds()
 	targetWidth, targetHeight := float64(targetBounds.Dx()), float64(targetBounds.Dy())
-	height := 256.0/ebiten.Monitor().DeviceScaleFactor()
-	width  := height*(targetWidth/targetHeight)
+	height := 512.0 / ebiten.Monitor().DeviceScaleFactor()
+	width := height * (targetWidth / targetHeight)
 	offWidth, offHeight := int(width), int(height)
 
 	// create offscreen if necessary
@@ -53,10 +59,10 @@ func (self *controller) debugDrawAll(target *ebiten.Image) {
 
 	// draw info to offscreen and project
 	for i, info := range self.debugInfo {
-		ebitenutil.DebugPrintAt(self.debugOffscreen.Target(), info, 1, 1 + i*12)
+		ebitenutil.DebugPrintAt(self.debugOffscreen.Target(), info, 1, 1+i*12)
 	}
 	self.debugOffscreen.Project(target)
 
 	// clear debug info
-	self.debugInfo = self.debugInfo[ : 0]
+	self.debugInfo = self.debugInfo[:0]
 }

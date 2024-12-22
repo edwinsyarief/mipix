@@ -1,34 +1,37 @@
-package mipix
+package ebipixel
 
-import "fmt"
-import "image/color"
+import (
+	"fmt"
+	"image/color"
 
-import "github.com/hajimehoshi/ebiten/v2"
+	ebimath "github.com/edwinsyarief/ebi-math"
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 var _ fmt.Formatter
 
 // --- game ---
 
-// The game interface for mipix, which is the equivalent to
+// The game interface for ebipixel, which is the equivalent to
 // [ebiten.Game] on Ebitengine but without the Layout() method.
 type Game interface {
 	// Updates the game logic.
-	// 
+	//
 	// You can implement this almost exactly in the same
 	// way you would do for a pure Ebitengine game.
 	Update() error
 
 	// Draws the game contents.
 	//
-	// Unlike Ebitengine, the canvas you receive from mipix can vary in
+	// Unlike Ebitengine, the canvas you receive from ebipixel can vary in
 	// size depending on the zoom level or camera position, but it always
 	// represents pixels one-to-one. Your mindset should be ignoring the
 	// canvas size and focusing on "rendering the game area specified by
-	// mipix.Camera().Area()".
+	// ebipixel.Camera().Area()".
 	Draw(logicalCanvas *ebiten.Image)
 }
 
-// Equivalent to [ebiten.RunGame](), but expecting a mipix [Game]
+// Equivalent to [ebiten.RunGame](), but expecting a ebipixel [Game]
 // instead of an [ebiten.Game].
 //
 // Will panic if invoked before [SetResolution]().
@@ -58,7 +61,7 @@ func SetResolution(width, height int) {
 // The canvas passed to the callback will be preemptively cleared if
 // the previous draw was a high resolution draw.
 //
-// Must only be called from [Game].Draw() or successive draw callbacks. 
+// Must only be called from [Game].Draw() or successive draw callbacks.
 func QueueDraw(handler func(logicalCanvas *ebiten.Image)) {
 	pkgController.queueDraw(handler)
 }
@@ -75,7 +78,7 @@ func QueueDraw(handler func(logicalCanvas *ebiten.Image)) {
 // shader effects and more.
 //
 // Must only be called from [Game].Draw() or successive draw callbacks.
-// See also [QueueDraw](). 
+// See also [QueueDraw]().
 func QueueHiResDraw(handler func(viewport, hiResCanvas *ebiten.Image)) {
 	pkgController.queueHiResDraw(handler)
 }
@@ -100,18 +103,27 @@ type AccessorHiRes struct{}
 
 // Provides access to high resolution drawing methods in
 // a structured manner. Use through method chaining, e.g.:
-//   mipix.HiRes().Draw(target, source, x, y)
+//
+//	ebipixel.HiRes().Draw(target, source, x, y)
 func HiRes() AccessorHiRes { return AccessorHiRes{} }
+
+func (self AccessorHiRes) Width() int {
+	return pkgController.hiResWidth
+}
+
+func (self AccessorHiRes) Height() int {
+	return pkgController.hiResHeight
+}
 
 // Draws the source into the given target at the given global logical
 // coordinates (camera origin is automatically subtracted).
 //
-// Notice that mipix's main focus is not high resolution drawing, and this
+// Notice that ebipixel's main focus is not high resolution drawing, and this
 // method is not expected to be used more than a dozen times per frame.
 // If you are only drawing the main character or a few entities at floating
 // point positions, using this method should be fine. If you are trying to
 // draw every element of your game with this, or relying on this for a
-// particle system, you are misusing mipix.
+// particle system, you are misusing ebipixel.
 //
 // Many more high resolution drawing features could be provided, and some
 // might be added in the future, but this is not the main goal of the project.
@@ -119,13 +131,8 @@ func HiRes() AccessorHiRes { return AccessorHiRes{} }
 // All that being said, this is not a recommendation to avoid this method.
 // This method is perfectly functional and a very practical tool in many
 // scenarios.
-func (self AccessorHiRes) Draw(target, source *ebiten.Image, x, y float64) {
-	pkgController.hiResDraw(target, source, x, y)
-}
-
-// Similar to [AccessorHiRes.Draw](), but horizontally flipped.
-func (self AccessorHiRes) DrawHorzFlip(target, source *ebiten.Image, x, y float64) {
-	pkgController.hiResDrawHorzFlip(target, source, x, y)
+func (self AccessorHiRes) Draw(target, source *ebiten.Image, transform *ebimath.Transform) {
+	pkgController.hiResDraw(target, source, transform)
 }
 
 // Fills the logical area designated by the given coordinates with fillColor.
@@ -142,7 +149,8 @@ type AccessorScaling struct{}
 
 // Provides access to scaling-related functionality in a structured
 // manner. Use through method chaining, e.g.:
-//   mipix.Scaling().SetFilter(mipix.Hermite)
+//
+//	ebipixel.Scaling().SetFilter(ebipixel.Hermite)
 func Scaling() AccessorScaling { return AccessorScaling{} }
 
 // See [AccessorScaling.SetFilter]().
@@ -150,6 +158,7 @@ func Scaling() AccessorScaling { return AccessorScaling{} }
 // Multiple filter options are provided mostly as comparison points.
 // In general, sticking to [AASamplingSoft] is recommended.
 type ScalingFilter uint8
+
 const (
 	// Anti-aliased pixel art point sampling. Good default, reasonably
 	// performant, decent balance between sharpness and stability during
@@ -199,15 +208,24 @@ const (
 // Returns a string representation of the scaling filter.
 func (self ScalingFilter) String() string {
 	switch self {
-	case AASamplingSoft  : return "AASamplingSoft"
-	case AASamplingSharp : return "AASamplingSharp"
-	case Nearest  : return "Nearest"
-	case Hermite  : return "Hermite"
-	case Bicubic  : return "Bicubic"
-	case Bilinear : return "Bilinear"
-	case SrcHermite  : return "SrcHermite"
-	case SrcBicubic  : return "SrcBicubic"
-	case SrcBilinear : return "SrcBilinear"
+	case AASamplingSoft:
+		return "AASamplingSoft"
+	case AASamplingSharp:
+		return "AASamplingSharp"
+	case Nearest:
+		return "Nearest"
+	case Hermite:
+		return "Hermite"
+	case Bicubic:
+		return "Bicubic"
+	case Bilinear:
+		return "Bilinear"
+	case SrcHermite:
+		return "SrcHermite"
+	case SrcBicubic:
+		return "SrcBicubic"
+	case SrcBilinear:
+		return "SrcBilinear"
 	default:
 		panic("invalid ScalingFilter")
 	}
@@ -217,16 +235,21 @@ func (self ScalingFilter) String() string {
 // no matter how ugly it gets. By default, stretching is disabled. In
 // general you only want to expose stretching as a setting for players;
 // don't set it to true on your own.
-// 
+//
 // Must only be called during initialization or [Game].Update().
-func (AccessorScaling) SetStretchingAllowed(allowed bool) {
-	pkgController.scalingSetStretchingAllowed(allowed)
+func (AccessorScaling) SetStretchingAllowed(allowed, keepAspectRatio, dynamicScaling bool) {
+	pkgController.scalingSetStretchingAllowed(allowed, keepAspectRatio, dynamicScaling)
 }
 
 // Returns whether stretching is allowed for screen scaling.
 // See [AccessorScaling.SetStretchingAllowed]() for more details.
 func (AccessorScaling) GetStretchingAllowed() bool {
 	return pkgController.scalingGetStretchingAllowed()
+}
+
+func (AccessorScaling) SetBestFitContextSize(width, height int) {
+	pkgController.setBestFitContextSize(width, height)
+	pkgController.setBestFitRenderSize(pkgController.logicalWidth, pkgController.logicalHeight)
 }
 
 // Changes the scaling filter. The default is [AASamplingSoft].
@@ -253,8 +276,9 @@ type AccessorConvert struct{}
 
 // Provides access to coordinate conversions in a structured
 // manner. Use through method chaining, e.g.:
-//   cx, cy := ebiten.CursorPosition()
-//   lx, ly := mipix.Convert().ToLogicalCoords(cx, cy)
+//
+//	cx, cy := ebiten.CursorPosition()
+//	lx, ly := ebipixel.Convert().ToLogicalCoords(cx, cy)
 func Convert() AccessorConvert { return AccessorConvert{} }
 
 // Transforms coordinates obtained from [ebiten.CursorPosition]() and
@@ -267,7 +291,7 @@ func (AccessorConvert) ToLogicalCoords(x, y int) (float64, float64) {
 }
 
 // Transforms coordinates obtained from [ebiten.CursorPosition]() and
-// similar functions to relative screen coordinates between 0 and 1. 
+// similar functions to relative screen coordinates between 0 and 1.
 //
 // Commonly used to see what is being clicked on the game's UI or
 // applying fancy shaders and effects that depend on the cursor's
@@ -276,7 +300,7 @@ func (AccessorConvert) ToRelativeCoords(x, y int) (float64, float64) {
 	return pkgController.convertToRelativeCoords(x, y)
 }
 
-// Transforms coordinates obtained from [ebiten.CursorPosition]() and 
+// Transforms coordinates obtained from [ebiten.CursorPosition]() and
 // similar functions to screen coordinates rescaled between (0, 0) and
 // (GameWidth, GameHeight).
 //
@@ -293,7 +317,8 @@ type AccessorDebug struct{}
 
 // Provides access to debugging functionality in a structured
 // manner. Use through method chaining, e.g.:
-//   mipix.Debug().Drawf("current tick: %d", mipix.Tick().Now())
+//
+//	ebipixel.Debug().Drawf("current tick: %d", ebipixel.Tick().Now())
 func Debug() AccessorDebug { return AccessorDebug{} }
 
 // Similar to Printf debugging, but drawing the text on the top
@@ -311,8 +336,9 @@ func (AccessorDebug) Drawf(format string, args ...any) {
 // arguments. The function will only print during the period elapsed
 // between those two tick counts.
 // Some examples:
-//   mipix.Debug().Printfr(0, 0, "only print on the first tick\n")
-//   mipix.Debug().Printfr(180, 300, "print from 3s to 5s lapse\n")
+//
+//	ebipixel.Debug().Printfr(0, 0, "only print on the first tick\n")
+//	ebipixel.Debug().Printfr(180, 300, "print from 3s to 5s lapse\n")
 func (AccessorDebug) Printfr(firstTick, lastTick uint64, format string, args ...any) {
 	pkgController.debugPrintfr(firstTick, lastTick, format, args...)
 }
@@ -338,7 +364,8 @@ type AccessorTick struct{}
 
 // Provides access to game tick functions in a structured
 // manner. Use through method chaining, e.g.:
-//   currentTick := mipix.Tick().Now()
+//
+//	currentTick := ebipixel.Tick().Now()
 func Tick() AccessorTick { return AccessorTick{} }
 
 // Returns the current tick.
@@ -347,36 +374,36 @@ func (AccessorTick) Now() uint64 {
 }
 
 // Returns the updates per second. This is [ebiten.TPS](),
-// but mipix considers a more advanced model for [ticks
+// but ebipixel considers a more advanced model for [ticks
 // and updates].
 //
-// [ticks and updates]: https://github.com/tinne26/mipix/blob/main/docs/ups-vs-tps.md
+// [ticks and updates]: https://github.com/edwinsyarief/mipix/blob/main/docs/ups-vs-tps.md
 func (AccessorTick) UPS() int {
 	return ebiten.TPS()
 }
 
-// This is just [ebiten.SetTPS]() under the hood, but mipix
+// This is just [ebiten.SetTPS]() under the hood, but ebipixel
 // considers a more advanced model for [ticks and updates].
 //
-// [ticks and updates]: https://github.com/tinne26/mipix/blob/main/docs/ups-vs-tps.md
+// [ticks and updates]: https://github.com/edwinsyarief/mipix/blob/main/docs/ups-vs-tps.md
 func (AccessorTick) SetUPS(updatesPerSecond int) {
 	ebiten.SetTPS(updatesPerSecond)
 }
 
 // Returns the ticks per second. This is UPS()*TickRate.
-// Notice that this is not [ebiten.TPS](), as mipix considers
+// Notice that this is not [ebiten.TPS](), as ebipixel considers
 // a more advanced model for [ticks and updates].
 //
-// [ticks and updates]: https://github.com/tinne26/mipix/blob/main/docs/ups-vs-tps.md
+// [ticks and updates]: https://github.com/edwinsyarief/mipix/blob/main/docs/ups-vs-tps.md
 func (AccessorTick) TPS() int {
-	return ebiten.TPS()*int(pkgController.tickRate)
+	return ebiten.TPS() * int(pkgController.tickRate)
 }
 
 // Sets the tick rate (ticks per update, often refered to as "TPU").
-// Notice that this is not [ebiten.SetTPS](), as mipix considers
+// Notice that this is not [ebiten.SetTPS](), as ebipixel considers
 // a more advanced model for [ticks and updates].
 //
-// [ticks and updates]: https://github.com/tinne26/mipix/blob/main/docs/ups-vs-tps.md
+// [ticks and updates]: https://github.com/edwinsyarief/mipix/blob/main/docs/ups-vs-tps.md
 func (AccessorTick) SetRate(tickRate int) {
 	pkgController.tickSetRate(tickRate)
 }

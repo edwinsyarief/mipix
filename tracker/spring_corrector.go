@@ -1,11 +1,14 @@
 package tracker
 
-import "github.com/tinne26/mipix/internal"
+import (
+	ebimath "github.com/edwinsyarief/ebi-math"
+	"github.com/edwinsyarief/mipix/internal"
+)
 
 type springCorrector struct {
-	spring internal.Spring
+	spring         internal.Spring
 	speedX, speedY float64 // logical, relative to resolution and zoom
-	initialized bool
+	initialized    bool
 }
 
 func (self *springCorrector) initialize() {
@@ -20,9 +23,11 @@ func (self *springCorrector) SetParameters(damping, power float64) {
 }
 
 func (self *springCorrector) Update(errorX, errorY float64) {
-	if !self.initialized { self.initialize() }
+	if !self.initialized {
+		self.initialize()
+	}
 
-	updateDelta := 1.0/float64(internal.GetUPS())
+	updateDelta := 1.0 / float64(internal.GetUPS())
 	w, h := internal.GetResolution()
 	w64, h64 := float64(w), float64(h)
 	errorX /= w64
@@ -30,10 +35,10 @@ func (self *springCorrector) Update(errorX, errorY float64) {
 
 	_, self.speedX = self.spring.Update(0.0, errorX, self.speedX)
 	_, self.speedY = self.spring.Update(0.0, errorY, self.speedY)
-	if internal.Abs(self.speedX) < 0.12*updateDelta {
+	if ebimath.Abs(self.speedX) < 0.12*updateDelta {
 		self.speedX = 0.0
 	}
-	if internal.Abs(self.speedY) < 0.12*updateDelta {
+	if ebimath.Abs(self.speedY) < 0.12*updateDelta {
 		self.speedY = 0.0
 	}
 }

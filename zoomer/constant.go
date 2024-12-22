@@ -1,6 +1,6 @@
 package zoomer
 
-import "github.com/tinne26/mipix/internal"
+import "github.com/edwinsyarief/mipix/internal"
 
 var _ Zoomer = (*Constant)(nil)
 
@@ -18,10 +18,10 @@ var _ Zoomer = (*Constant)(nil)
 //
 // The implementation is update-rate independent.
 type Constant struct {
-	speedTransitionIni float64
-	speedTransitionEnd float64
-	speedTransitionLength TicksDuration
-	speedTransitionElapsed TicksDuration
+	speedTransitionIni       float64
+	speedTransitionEnd       float64
+	speedTransitionLength    TicksDuration
+	speedTransitionElapsed   TicksDuration
 	zoomCompensationDisabled bool
 }
 
@@ -30,7 +30,9 @@ type Constant struct {
 // The method also requires a second parameter indicating the duration of
 // the transition from the old speed to the new one, in ticks.
 func (self *Constant) SetSpeed(newSpeed float64, transition TicksDuration) {
-	if newSpeed < 0 { newSpeed = -newSpeed }
+	if newSpeed < 0 {
+		newSpeed = -newSpeed
+	}
 	if transition == 0 {
 		self.speedTransitionEnd = newSpeed - constantDefaultSpeedOffset
 	} else {
@@ -45,7 +47,7 @@ func (self *Constant) SetSpeed(newSpeed float64, transition TicksDuration) {
 // Without zoom compensation, zooming in seems to progressively slow
 // down, and zooming out seems to progressively speed up. This is
 // explained in more detail on the documentation of [Constant] itself.
-// 
+//
 // Defaults to true.
 func (self *Constant) SetZoomCompensated(compensated bool) {
 	self.zoomCompensationDisabled = !compensated
@@ -62,20 +64,24 @@ func (self *Constant) Reset() {
 
 func (self *Constant) Update(currentZoom, targetZoom float64) float64 {
 	speed := self.getAndAdvanceCurrentSpeed()
-	if targetZoom == currentZoom { return 0.0 }
-	updateSpeed := (speed + constantDefaultSpeedOffset)*(1.0/float64(internal.GetUPS()))
-	if !self.zoomCompensationDisabled { updateSpeed *= currentZoom }
+	if targetZoom == currentZoom {
+		return 0.0
+	}
+	updateSpeed := (speed + constantDefaultSpeedOffset) * (1.0 / float64(internal.GetUPS()))
+	if !self.zoomCompensationDisabled {
+		updateSpeed *= currentZoom
+	}
 	if currentZoom < targetZoom {
-		return min(updateSpeed, targetZoom - currentZoom)
+		return min(updateSpeed, targetZoom-currentZoom)
 	} else {
-		return max(-updateSpeed, targetZoom - currentZoom)
+		return max(-updateSpeed, targetZoom-currentZoom)
 	}
 }
 
 func (self *Constant) getCurrentSpeed() float64 {
 	var speed float64
 	if self.speedTransitionElapsed < self.speedTransitionLength {
-		t := float64(self.speedTransitionElapsed)/float64(self.speedTransitionLength)
+		t := float64(self.speedTransitionElapsed) / float64(self.speedTransitionLength)
 		speed = internal.LinearInterp(self.speedTransitionIni, self.speedTransitionEnd, t)
 	} else {
 		speed = self.speedTransitionEnd
@@ -87,7 +93,7 @@ func (self *Constant) getAndAdvanceCurrentSpeed() float64 {
 	speed := self.getCurrentSpeed()
 	if self.speedTransitionElapsed < self.speedTransitionLength {
 		self.speedTransitionElapsed += TicksDuration(internal.GetTPU())
-		self.speedTransitionElapsed  = min(self.speedTransitionElapsed, self.speedTransitionLength)
+		self.speedTransitionElapsed = min(self.speedTransitionElapsed, self.speedTransitionLength)
 	}
 	return speed
 }

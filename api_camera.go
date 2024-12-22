@@ -1,18 +1,21 @@
-package mipix
+package ebipixel
 
-import "image"
+import (
+	"image"
 
-import "github.com/tinne26/mipix/zoomer"
-import "github.com/tinne26/mipix/tracker"
-import "github.com/tinne26/mipix/shaker"
+	"github.com/edwinsyarief/mipix/shaker"
+	"github.com/edwinsyarief/mipix/tracker"
+	"github.com/edwinsyarief/mipix/zoomer"
+)
 
 // See [Camera]().
 type AccessorCamera struct{}
 
 // Provides access to camera-related functionality in a structured
 // manner. Use through method chaining, e.g.:
-//   mipix.Camera().Zoom(2.0)
-func Camera() AccessorCamera { return AccessorCamera{} } 
+//
+//	ebipixel.Camera().Zoom(2.0)
+func Camera() AccessorCamera { return AccessorCamera{} }
 
 // --- tracking ---
 
@@ -26,8 +29,9 @@ func (AccessorCamera) GetTracker() tracker.Tracker {
 // By default the tracker is nil, and tracking is handled by a
 // fallback [tracker.SpringTailer]. If you want something simpler
 // at the start, you can easily switch to an instant tracker:
-//   import "github.com/tinne26/mipix/tracker"
-//   mipix.Camera().SetTracker(tracker.Instant)
+//
+//	import "github.com/edwinsyarief/mipix/tracker"
+//	ebipixel.Camera().SetTracker(tracker.Instant)
 func (AccessorCamera) SetTracker(tracker tracker.Tracker) {
 	pkgController.cameraSetTracker(tracker)
 }
@@ -55,8 +59,8 @@ func (AccessorCamera) ResetCoordinates(x, y float64) {
 //
 // Notice that only one camera update can happen per tick,
 // so the automatic camera update will be skipped if you
-// flush coordinates manually during [Game].Update(). 
-// Calling this method multiple times during the same update 
+// flush coordinates manually during [Game].Update().
+// Calling this method multiple times during the same update
 // will only update coordinates on the first invocation.
 //
 // If you don't need this feature, it's better to forget about
@@ -93,11 +97,15 @@ func (AccessorCamera) AreaF64() (minX, minY, maxX, maxY float64) {
 // zoom level to the new one is managed by a [zoomer.Zoomer].
 //
 // Important: very low zoom levels are extremely dangerous, as they
-// make the camera area grow towards infinity. In fact, mipix doesn't
+// make the camera area grow towards infinity. In fact, ebipixel doesn't
 // expect you to go below 0.05, and stops trying to predict/optimize
 // canvas sizes for zoom transitions beyond that point.
 func (AccessorCamera) Zoom(newZoomLevel float64) {
 	pkgController.cameraZoom(newZoomLevel)
+}
+
+func (AccessorCamera) ResetZoom(zoomLevel float64) {
+	pkgController.cameraZoomReset(zoomLevel)
 }
 
 // Returns the current [zoomer.Zoomer] interface.
@@ -123,7 +131,7 @@ func (AccessorCamera) GetZoom() (current, target float64) {
 // Returns the shaker interface associated to the given shaker
 // channel (or to the default channel zero if none is passed).
 // Passing multiple channels will make the function panic.
-// 
+//
 // See [AccessorCamera.SetShaker]() for more details.
 func (AccessorCamera) GetShaker(channel ...shaker.Channel) shaker.Shaker {
 	return pkgController.cameraGetShaker()

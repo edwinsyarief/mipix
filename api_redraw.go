@@ -1,28 +1,29 @@
-package mipix
+package ebipixel
 
 // See [Redraw]().
 type AccessorRedraw struct{}
 
 // Provides access to methods for efficient GPU usage in
 // a structured manner. Use through method chaining, e.g.:
-//   mipix.Redraw().SetManaged(true)
+//
+//	ebipixel.Redraw().SetManaged(true)
 //
 // In some games and applications it's possible to spare
 // GPU by using [ebiten.SetScreenClearedEveryFrame](false)
 // and omitting redundant draw calls.
 //
 // The redraw accessor allows you to synchronize this
-// process with mipix itself, as there are some projections
+// process with ebipixel itself, as there are some projections
 // that would otherwise fall outside your control.
 //
 // By default, redraws are executed on every frame. If you
 // want to manage them more efficiently, you can do the
 // following:
-//  - Make sure to disable Ebitengine's screen clear.
-//  - Opt into managed redraws with [AccessorRedraw.SetManaged](true).
-//  - Whenever a redraw becomes necessary, issue an
-//    [AccessorRedraw.Request]().
-//  - On [Game].Draw(), if ![AccessorRedraw.Pending](), skip the draw.
+//   - Make sure to disable Ebitengine's screen clear.
+//   - Opt into managed redraws with [AccessorRedraw.SetManaged](true).
+//   - Whenever a redraw becomes necessary, issue an
+//     [AccessorRedraw.Request]().
+//   - On [Game].Draw(), if ![AccessorRedraw.Pending](), skip the draw.
 func Redraw() AccessorRedraw {
 	return AccessorRedraw{}
 }
@@ -41,7 +42,7 @@ func (AccessorRedraw) IsManaged() bool {
 	return pkgController.redrawIsManaged()
 }
 
-// Notifies mipix that the next [Game].Draw() needs to be
+// Notifies ebipixel that the next [Game].Draw() needs to be
 // projected to the screen. Requests are typically issued
 // when relevant input or events are detected during
 // [Game].Update().
@@ -60,10 +61,11 @@ func (AccessorRedraw) Request() {
 // properties or others.
 //
 // This method is often used like this:
-//   func (game *Game) Draw(canvas *ebiten.Image) {
-//       if !mipix.Redraw().Pending() { return }
-//       // ...
-//   }
+//
+//	func (game *Game) Draw(canvas *ebiten.Image) {
+//	    if !ebipixel.Redraw().Pending() { return }
+//	    // ...
+//	}
 func (AccessorRedraw) Pending() bool {
 	return pkgController.redrawPending()
 }

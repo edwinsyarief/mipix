@@ -1,8 +1,10 @@
-package mipix
+package ebipixel
 
-import "github.com/tinne26/mipix/tracker"
-import "github.com/tinne26/mipix/zoomer"
-import "github.com/tinne26/mipix/shaker"
+import (
+	"github.com/edwinsyarief/mipix/shaker"
+	"github.com/edwinsyarief/mipix/tracker"
+	"github.com/edwinsyarief/mipix/zoomer"
+)
 
 var defaultZoomer *zoomer.Quadratic
 var defaultTracker *tracker.SpringTailer

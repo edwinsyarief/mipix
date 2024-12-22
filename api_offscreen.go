@@ -1,11 +1,13 @@
-package mipix
+package ebipixel
 
-import "image"
-import "image/color"
+import (
+	"image"
+	"image/color"
 
-import "github.com/hajimehoshi/ebiten/v2"
-
-import "github.com/tinne26/mipix/internal"
+	ebimath "github.com/edwinsyarief/ebi-math"
+	"github.com/edwinsyarief/mipix/internal"
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 // Offscreens are logically sized canvases that you can draw to
 // and later project to high resolution space. They simplify the
@@ -18,9 +20,9 @@ import "github.com/tinne26/mipix/internal"
 // you want to store and reuse them. They also have to be manually
 // cleared when required.
 type Offscreen struct {
-	canvas *ebiten.Image
-	width int
-	height int
+	canvas        *ebiten.Image
+	width         int
+	height        int
 	drawImageOpts ebiten.DrawImageOptions
 }
 
@@ -30,7 +32,7 @@ type Offscreen struct {
 func NewOffscreen(width, height int) *Offscreen {
 	return &Offscreen{
 		canvas: ebiten.NewImage(width, height),
-		width: width, height: height,
+		width:  width, height: height,
 	}
 }
 
@@ -50,8 +52,9 @@ func (self *Offscreen) Draw(source *ebiten.Image, opts *ebiten.DrawImageOptions)
 }
 
 // Handy version of [Offscreen.Draw]() with specific coordinates.
-func (self *Offscreen) DrawAt(source *ebiten.Image, x, y int) {
-	self.drawImageOpts.GeoM.Translate(float64(x), float64(y))
+func (self *Offscreen) DrawAt(source *ebiten.Image, transform *ebimath.Transform) {
+	m := transform.Matrix()
+	self.drawImageOpts.GeoM = m
 	self.canvas.DrawImage(source, &self.drawImageOpts)
 	self.drawImageOpts.GeoM.Reset()
 }

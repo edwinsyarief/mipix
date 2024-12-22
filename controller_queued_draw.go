@@ -1,9 +1,9 @@
-package mipix
+package ebipixel
 
 import "github.com/hajimehoshi/ebiten/v2"
 
 type queuedDraw struct {
-	hiResFunc func(*ebiten.Image, *ebiten.Image)
+	hiResFunc   func(*ebiten.Image, *ebiten.Image)
 	logicalFunc func(*ebiten.Image)
 }
 
@@ -12,11 +12,15 @@ func (self *queuedDraw) IsHighResolution() bool {
 }
 
 func (self *controller) queueDraw(handler func(*ebiten.Image)) {
-	if !self.inDraw { panic("can't queue draw outside draw stage") }
-	self.queuedDraws = append(self.queuedDraws, queuedDraw{ logicalFunc: handler })
+	if !self.inDraw {
+		panic("can't queue draw outside draw stage")
+	}
+	self.queuedDraws = append(self.queuedDraws, queuedDraw{logicalFunc: handler})
 }
 
 func (self *controller) queueHiResDraw(handler func(*ebiten.Image, *ebiten.Image)) {
-	if !self.inDraw { panic("can't queue draw outside draw stage") }
-	self.queuedDraws = append(self.queuedDraws, queuedDraw{ hiResFunc: handler })
+	if !self.inDraw {
+		panic("can't queue draw outside draw stage")
+	}
+	self.queuedDraws = append(self.queuedDraws, queuedDraw{hiResFunc: handler})
 }

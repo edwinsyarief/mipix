@@ -1,90 +1,83 @@
 package internal
 
-import "cmp"
-import "image"
-import "image/color"
+import (
+	"image"
+	"image/color"
+	"math"
 
-import "github.com/hajimehoshi/ebiten/v2"
-
-func Clamp[T cmp.Ordered](x, a, b T) T {
-	if x <= a { return a }
-	if x >= b { return b }
-	return x
-}
-
-func ClampTowardsZero[T float64 | float32 | int | int16 | int32 | int64](x, clampReference T) T {
-	if clampReference > 0 { return min(x, clampReference) }
-	return max(x, clampReference)
-}
-
-func Abs[T float64 | float32 | int | int8 | int16 | int32 | int64](x T) T {
-	if x >= 0 { return x }
-	return -x
-}
-
-// It doesn't take zero into account, but this is intentional.
-func Sign[T float64 | float32 | int | int8 | int16 | int32 | int64](x T) T {
-	if x >= 0 { return +1 }
-	return -1
-}
+	ebimath "github.com/edwinsyarief/ebi-math"
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 // --- color ---
 
 func toRGBAf32(clr color.Color) (r, g, b, a float32) {
 	r16, g16, b16, a16 := clr.RGBA()
-	return float32(r16)/65535.0, float32(g16)/65535.0, float32(b16)/65535.0, float32(a16)/65535.0
+	return float32(r16) / 65535.0, float32(g16) / 65535.0, float32(b16) / 65535.0, float32(a16) / 65535.0
 }
 
 // --- interpolation ---
 
 func TAt(x, a, b float64) float64 {
 	if a < b {
-		if x <  a { return 0.0 }
-		if x >= b { return 1.0 }
+		if x < a {
+			return 0.0
+		}
+		if x >= b {
+			return 1.0
+		}
 	} else {
-		if x <  b { return 1.0 }
-		if x >= a { return 0.0 }
+		if x < b {
+			return 1.0
+		}
+		if x >= a {
+			return 0.0
+		}
 	}
-	return (x - a)/(b - a)
+	return (x - a) / (b - a)
 }
 
-func LinearInterp(a, b, t float64) float64 { return (a + (b - a)*t) }
+func LinearInterp(a, b, t float64) float64 { return (a + (b-a)*t) }
 func CubicSmoothstepInterp(a, b, t float64) float64 { // related: https://iquilezles.org/articles/smoothsteps
-	t = Clamp(t, 0, 1)
-	return LinearInterp(a, b, t*t*(3.0 - 2.0*t))
+	t = ebimath.Clamp(t, 0, 1)
+	return LinearInterp(a, b, t*t*(3.0-2.0*t))
 }
 func QuadInOutInterp(a, b, t float64) float64 {
 	return LinearInterp(a, b, QuadInOut(t))
 }
 func QuadInOut(t float64) float64 {
-	t = Clamp(t, 0, 1)
-	if t < 0.5 { return 2*t*t }
+	t = ebimath.Clamp(t, 0, 1)
+	if t < 0.5 {
+		return 2 * t * t
+	}
 	t = 2*t - 1
-	return -0.5*(t*(t - 2) - 1)
+	return -0.5 * (t*(t-2) - 1)
 }
 
 func QuadDvInOut(t float64) float64 {
-	t = Clamp(t, 0, 1)
-	if t <= 0.5 { return 4*t }
+	t = ebimath.Clamp(t, 0, 1)
+	if t <= 0.5 {
+		return 4 * t
+	}
 	return 4 - 4*t
 }
 
 func EaseInQuad(t float64) float64 {
-	t = Clamp(t, 0, 1)
-	return t*t
+	t = ebimath.Clamp(t, 0, 1)
+	return t * t
 }
 
 func CubicOutInterp(a, b, t float64) float64 {
 	return LinearInterp(a, b, EaseOutCubic(t))
 }
 func EaseOutCubic(t float64) float64 {
-	t = Clamp(t, 0, 1)
+	t = ebimath.Clamp(t, 0, 1)
 	omt := 1 - t
 	return 1 - omt*omt*omt
 }
 
 func EaseOutQuad(t float64) float64 {
-	t = Clamp(t, 0, 1)
+	t = ebimath.Clamp(t, 0, 1)
 	omt := 1 - t
 	return 1 - omt*omt
 }
@@ -112,7 +105,9 @@ func FillOver(target *ebiten.Image, fillColor color.Color) {
 }
 
 func FillOverRect(target *ebiten.Image, bounds image.Rectangle, fillColor color.Color) {
-	if bounds.Empty() { return }
+	if bounds.Empty() {
+		return
+	}
 	r, g, b, a := toRGBAf32(fillColor)
 	for i := range 4 {
 		pkgFillVertices[i].ColorR = r
@@ -135,7 +130,9 @@ func FillOverRect(target *ebiten.Image, bounds image.Rectangle, fillColor color.
 }
 
 func FillOverRectF32(target *ebiten.Image, minX, minY, maxX, maxY float32, fillColor color.Color) {
-	if maxX <= minX || maxY <= minY { return }
+	if maxX <= minX || maxY <= minY {
+		return
+	}
 	r, g, b, a := toRGBAf32(fillColor)
 	for i := range 4 {
 		pkgFillVertices[i].ColorR = r
@@ -153,4 +150,41 @@ func FillOverRectF32(target *ebiten.Image, minX, minY, maxX, maxY float32, fillC
 	pkgFillVertices[3].DstX = minX
 	pkgFillVertices[3].DstY = maxY
 	target.DrawTriangles(pkgFillVertices, pkgFillVertIndices, pkgMask1x1, &pkgFillTrianglesOpts)
+}
+
+func BestFitFloat(dynamicScale bool, layoutWidth, layoutHeight int, renderWidth float64, renderHeight, contextWidth, contextHeight *float64, allowBelowOne bool) float64 {
+	// calculate scale x
+	sx := float64(layoutWidth) / renderWidth
+	if contextWidth != nil {
+		sx = *contextWidth / renderWidth
+	}
+
+	// calculate scale y
+	rHeight := renderWidth
+	if renderHeight != nil {
+		rHeight = *renderHeight
+	}
+	sy := float64(layoutHeight) / rHeight
+	if contextHeight != nil {
+		sy = *contextHeight / rHeight
+	}
+
+	if dynamicScale {
+		if layoutWidth < int(*contextWidth) || layoutWidth < int(renderWidth) {
+			sx = float64(layoutWidth) / renderWidth
+		}
+		if layoutHeight < int(*contextHeight) || layoutHeight < int(*renderHeight) {
+			sy = float64(layoutHeight) / *renderHeight
+		}
+	}
+
+	if allowBelowOne {
+		return math.Min(sx, sy)
+	}
+
+	return math.Max(1, math.Min(sx, sy))
+}
+
+func BestFitInt(dynamicScale bool, layoutWidth, layoutHeight int, renderWidth float64, renderHeight, contextWidth, contextHeight *float64) int {
+	return int(math.Floor(BestFitFloat(dynamicScale, layoutWidth, layoutHeight, renderWidth, renderHeight, contextWidth, contextHeight, false)))
 }

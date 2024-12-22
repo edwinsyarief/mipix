@@ -1,8 +1,10 @@
-package mipix
+package ebipixel
 
-import _ "embed"
+import (
+	_ "embed"
 
-import "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 // TODO: consider using quasilyte's minifier and paste code directly
 
@@ -34,6 +36,7 @@ var _srcBicubic []byte
 var _srcBilinear []byte
 
 var pkgSrcKageFilters [scalingFilterEndSentinel][]byte
+
 func init() {
 	pkgSrcKageFilters[Nearest] = _nearest
 	pkgSrcKageFilters[AASamplingSoft] = _aaSamplingSoft

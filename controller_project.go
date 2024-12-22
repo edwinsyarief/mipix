@@ -1,12 +1,16 @@
-package mipix
+package ebipixel
 
-import "math"
+import (
+	"math"
 
-import "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 // project from a logical canvas to a high resolution one
 func (self *controller) project(from, to *ebiten.Image) {
-	if !self.inDraw { panic("can't project images outside draw stage") }
+	if !self.inDraw {
+		panic("can't project images outside draw stage")
+	}
 
 	// compile shader if necessary
 	if self.shaders[self.scalingFilter] == nil {
@@ -35,8 +39,8 @@ func (self *controller) project(from, to *ebiten.Image) {
 	self.shaderVertices[3].SrcY = self.shaderVertices[2].SrcY
 
 	self.shaderOpts.Images[0] = from
-	self.shaderOpts.Uniforms["SourceRelativeTextureUnitX"] = float32(srcBounds.Dx())/float32(dstBounds.Dx())
-	self.shaderOpts.Uniforms["SourceRelativeTextureUnitY"] = float32(srcBounds.Dy())/float32(dstBounds.Dy())
+	self.shaderOpts.Uniforms["SourceRelativeTextureUnitX"] = float32(srcBounds.Dx()) / float32(dstBounds.Dx())
+	self.shaderOpts.Uniforms["SourceRelativeTextureUnitY"] = float32(srcBounds.Dy()) / float32(dstBounds.Dy())
 	to.DrawTrianglesShader(
 		self.shaderVertices, self.shaderVertIndices,
 		self.shaders[self.scalingFilter], &self.shaderOpts,
@@ -45,7 +49,9 @@ func (self *controller) project(from, to *ebiten.Image) {
 }
 
 func (self *controller) projectLogical(from, to *ebiten.Image) {
-	if !self.inDraw { panic("can't project images outside draw stage") }
+	if !self.inDraw {
+		panic("can't project images outside draw stage")
+	}
 
 	// compile shader if necessary
 	if self.shaders[self.scalingFilter] == nil {
@@ -68,8 +74,12 @@ func (self *controller) projectLogical(from, to *ebiten.Image) {
 	fractCamMinY := cminY - math.Floor(cminY)
 	fractCamMaxX := cmaxX - math.Floor(cmaxX)
 	fractCamMaxY := cmaxY - math.Floor(cmaxY)
-	if fractCamMaxX != 0.0 { fractCamMaxX = 1.0 - fractCamMaxX }
-	if fractCamMaxY != 0.0 { fractCamMaxY = 1.0 - fractCamMaxY }
+	if fractCamMaxX != 0.0 {
+		fractCamMaxX = 1.0 - fractCamMaxX
+	}
+	if fractCamMaxY != 0.0 {
+		fractCamMaxY = 1.0 - fractCamMaxY
+	}
 
 	srcBounds := from.Bounds()
 	self.shaderVertices[0].SrcX = float32(float64(srcBounds.Min.X) + fractCamMinX)
@@ -82,8 +92,8 @@ func (self *controller) projectLogical(from, to *ebiten.Image) {
 	self.shaderVertices[3].SrcY = self.shaderVertices[2].SrcY
 
 	self.shaderOpts.Images[0] = from
-	self.shaderOpts.Uniforms["SourceRelativeTextureUnitX"] = float32(srcBounds.Dx())/float32(dstBounds.Dx())
-	self.shaderOpts.Uniforms["SourceRelativeTextureUnitY"] = float32(srcBounds.Dy())/float32(dstBounds.Dy())
+	self.shaderOpts.Uniforms["SourceRelativeTextureUnitX"] = float32(srcBounds.Dx()) / float32(dstBounds.Dx())
+	self.shaderOpts.Uniforms["SourceRelativeTextureUnitY"] = float32(srcBounds.Dy()) / float32(dstBounds.Dy())
 	to.DrawTrianglesShader(
 		self.shaderVertices, self.shaderVertIndices,
 		self.shaders[self.scalingFilter], &self.shaderOpts,

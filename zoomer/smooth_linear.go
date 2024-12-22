@@ -1,6 +1,9 @@
 package zoomer
 
-import "github.com/tinne26/mipix/internal"
+import (
+	ebimath "github.com/edwinsyarief/ebi-math"
+	"github.com/edwinsyarief/mipix/internal"
+)
 
 var _ Zoomer = (*SmoothLinear)(nil)
 
@@ -11,7 +14,7 @@ var _ Zoomer = (*SmoothLinear)(nil)
 //
 // The implementation is tick-rate independent.
 type SmoothLinear struct {
-	speed float64
+	speed          float64
 	adjustedTarget float64
 }
 
@@ -38,20 +41,20 @@ func (self *SmoothLinear) Update(currentZoom, targetZoom float64) float64 {
 	//   still some edge cases, but we smooth that with an extra speed
 	//   interpolation.
 
-	updateDelta := 1.0/float64(internal.GetUPS())
+	updateDelta := 1.0 / float64(internal.GetUPS())
 	if targetZoom != self.adjustedTarget {
 		distance := targetZoom - self.adjustedTarget
-		normDist := internal.Clamp(distance, -MaxZoomTracking, MaxZoomTracking)
-		targetApproximation := normDist*1.6*updateDelta
-		if internal.Abs(targetZoom - currentZoom) < internal.Abs(distance - targetApproximation) {
+		normDist := ebimath.Clamp(distance, -MaxZoomTracking, MaxZoomTracking)
+		targetApproximation := normDist * 1.6 * updateDelta
+		if ebimath.Abs(targetZoom-currentZoom) < ebimath.Abs(distance-targetApproximation) {
 			self.adjustedTarget = currentZoom
-		} else {	
+		} else {
 			self.adjustedTarget += targetApproximation
 		}
 	}
 
-	newSpeed := internal.LinearInterp(0.0, self.adjustedTarget - currentZoom, 0.15)
+	newSpeed := internal.LinearInterp(0.0, self.adjustedTarget-currentZoom, 0.15)
 	self.speed = internal.LinearInterp(self.speed, newSpeed, 3.0*updateDelta)
-	speed := self.speed*updateDelta*20.0
-	return speed 
+	speed := self.speed * updateDelta * 20.0
+	return speed
 }

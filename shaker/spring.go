@@ -1,8 +1,11 @@
 package shaker
 
-import "math/rand/v2"
+import (
+	"math/rand/v2"
 
-import "github.com/tinne26/mipix/internal"
+	ebimath "github.com/edwinsyarief/ebi-math"
+	"github.com/edwinsyarief/mipix/internal"
+)
 
 var _ Shaker = (*Spring)(nil)
 
@@ -14,21 +17,27 @@ var _ Shaker = (*Spring)(nil)
 //
 // The implementation is tick-rate independent.
 type Spring struct {
-	spring internal.Spring
-	x, y float64
-	xSpeed, ySpeed float64
+	spring           internal.Spring
+	x, y             float64
+	xSpeed, ySpeed   float64
 	xTarget, yTarget float64
 
-	xRatio, yRatio float64
+	xRatio, yRatio   float64
 	zoomCompensation float64
-	initialized bool
+	initialized      bool
 }
 
 func (self *Spring) ensureInitialized() {
-	if self.initialized { return }
+	if self.initialized {
+		return
+	}
 	self.initialized = true
-	if self.xRatio == 0.0 { self.xRatio = 0.02 }
-	if self.yRatio == 0.0 { self.yRatio = 0.02 }
+	if self.xRatio == 0.0 {
+		self.xRatio = 0.02
+	}
+	if self.yRatio == 0.0 {
+		self.yRatio = 0.02
+	}
 	if !self.spring.IsInitialized() {
 		self.spring.SetParameters(0.25, 80.0)
 	}
@@ -39,7 +48,7 @@ func (self *Spring) ensureInitialized() {
 // example, if you have a resolution of 32x32 and set a motion
 // scale of (0.25, 0.25), the shaking will range within [-4, +4]
 // in both axes.
-// 
+//
 // Defaults to 0.02.
 func (self *Spring) SetMotionScale(xScalingFactor, yScalingFactor float64) {
 	if xScalingFactor <= 0.0 && yScalingFactor <= 0.0 {
@@ -84,21 +93,21 @@ func (self *Spring) GetShakeOffsets(level float64) (float64, float64) {
 		self.rerollTarget()
 		return 0.0, 0.0
 	}
-	
+
 	// bézier conic curve interpolation
 	self.x, self.xSpeed = self.spring.Update(self.x, self.xTarget, self.xSpeed)
 	self.y, self.ySpeed = self.spring.Update(self.y, self.yTarget, self.ySpeed)
-	if internal.Abs(self.xTarget - self.x) < 0.08 && internal.Abs(self.yTarget - self.y) < 0.08 {
+	if ebimath.Abs(self.xTarget-self.x) < 0.08 && ebimath.Abs(self.yTarget-self.y) < 0.08 {
 		self.rerollTarget()
 	}
-	
+
 	// translate interpolated point to real screen distances
 	w, h := internal.GetResolution()
 	w64, h64 := float64(w), float64(h)
 	zoom := internal.GetCurrentZoom()
 	xOffset, yOffset := self.x*w64*self.xRatio, self.y*h64*self.yRatio
 	if self.zoomCompensation != 0.0 {
-		compensatedZoom := 1.0 + (zoom - 1.0)*self.zoomCompensation
+		compensatedZoom := 1.0 + (zoom-1.0)*self.zoomCompensation
 		xOffset /= compensatedZoom
 		yOffset /= compensatedZoom
 	}
@@ -106,10 +115,10 @@ func (self *Spring) GetShakeOffsets(level float64) (float64, float64) {
 		xOffset *= level
 		yOffset *= level
 	}
-	
+
 	return xOffset, yOffset
 }
 
 func (self *Spring) rerollTarget() {
-	self.xTarget, self.yTarget = rand.Float64() - 0.5, rand.Float64() - 0.5
+	self.xTarget, self.yTarget = rand.Float64()-0.5, rand.Float64()-0.5
 }
