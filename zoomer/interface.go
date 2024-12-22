@@ -42,5 +42,5 @@ type Zoomer interface {
 	Update(currentZoom, targetZoom float64) (change float64)
 }
 
-// Alias for ebipixel.TicksDuration.
+// Alias for mipix.TicksDuration.
 type TicksDuration = internal.TicksDuration

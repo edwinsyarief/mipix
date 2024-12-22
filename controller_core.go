@@ -260,7 +260,7 @@ func (self *controller) LayoutF(logicWinWidth, logicWinHeight float64) (float64,
 func (self *controller) run(game Game) error {
 	self.game = game
 	if self.logicalWidth == 0 || self.logicalHeight == 0 {
-		panic("must set the game resolution with ebipixel.SetResolution(width, height) before ebipixel.Run()")
+		panic("must set the game resolution with mipix.SetResolution(width, height) before mipix.Run()")
 	}
 	self.trackerCurrentX = self.trackerTargetX
 	self.trackerCurrentY = self.trackerTargetY
@@ -387,7 +387,7 @@ func (self *controller) redrawScheduleClear() {
 
 func (self *controller) hiResDraw(target, source *ebiten.Image, transform *ebimath.Transform) {
 	if !self.inDraw {
-		panic("can't ebipixel.HiRes().Draw() outside draw stage")
+		panic("can't mipix.HiRes().Draw() outside draw stage")
 	}
 	self.internalHiResDraw(target, source, transform)
 }

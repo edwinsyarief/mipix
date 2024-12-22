@@ -14,7 +14,7 @@ type AccessorCamera struct{}
 // Provides access to camera-related functionality in a structured
 // manner. Use through method chaining, e.g.:
 //
-//	ebipixel.Camera().Zoom(2.0)
+//	mipix.Camera().Zoom(2.0)
 func Camera() AccessorCamera { return AccessorCamera{} }
 
 // --- tracking ---
@@ -31,7 +31,7 @@ func (AccessorCamera) GetTracker() tracker.Tracker {
 // at the start, you can easily switch to an instant tracker:
 //
 //	import "github.com/edwinsyarief/mipix/tracker"
-//	ebipixel.Camera().SetTracker(tracker.Instant)
+//	mipix.Camera().SetTracker(tracker.Instant)
 func (AccessorCamera) SetTracker(tracker tracker.Tracker) {
 	pkgController.cameraSetTracker(tracker)
 }

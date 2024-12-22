@@ -6,7 +6,7 @@ type AccessorRedraw struct{}
 // Provides access to methods for efficient GPU usage in
 // a structured manner. Use through method chaining, e.g.:
 //
-//	ebipixel.Redraw().SetManaged(true)
+//	mipix.Redraw().SetManaged(true)
 //
 // In some games and applications it's possible to spare
 // GPU by using [ebiten.SetScreenClearedEveryFrame](false)
@@ -63,7 +63,7 @@ func (AccessorRedraw) Request() {
 // This method is often used like this:
 //
 //	func (game *Game) Draw(canvas *ebiten.Image) {
-//	    if !ebipixel.Redraw().Pending() { return }
+//	    if !mipix.Redraw().Pending() { return }
 //	    // ...
 //	}
 func (AccessorRedraw) Pending() bool {

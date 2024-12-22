@@ -27,7 +27,7 @@ type Game interface {
 	// size depending on the zoom level or camera position, but it always
 	// represents pixels one-to-one. Your mindset should be ignoring the
 	// canvas size and focusing on "rendering the game area specified by
-	// ebipixel.Camera().Area()".
+	// mipix.Camera().Area()".
 	Draw(logicalCanvas *ebiten.Image)
 }
 
@@ -104,7 +104,7 @@ type AccessorHiRes struct{}
 // Provides access to high resolution drawing methods in
 // a structured manner. Use through method chaining, e.g.:
 //
-//	ebipixel.HiRes().Draw(target, source, x, y)
+//	mipix.HiRes().Draw(target, source, x, y)
 func HiRes() AccessorHiRes { return AccessorHiRes{} }
 
 func (self AccessorHiRes) Width() int {
@@ -123,7 +123,7 @@ func (self AccessorHiRes) Height() int {
 // If you are only drawing the main character or a few entities at floating
 // point positions, using this method should be fine. If you are trying to
 // draw every element of your game with this, or relying on this for a
-// particle system, you are misusing ebipixel.
+// particle system, you are misusing mipix.
 //
 // Many more high resolution drawing features could be provided, and some
 // might be added in the future, but this is not the main goal of the project.
@@ -150,7 +150,7 @@ type AccessorScaling struct{}
 // Provides access to scaling-related functionality in a structured
 // manner. Use through method chaining, e.g.:
 //
-//	ebipixel.Scaling().SetFilter(ebipixel.Hermite)
+//	mipix.Scaling().SetFilter(mipix.Hermite)
 func Scaling() AccessorScaling { return AccessorScaling{} }
 
 // See [AccessorScaling.SetFilter]().
@@ -278,7 +278,7 @@ type AccessorConvert struct{}
 // manner. Use through method chaining, e.g.:
 //
 //	cx, cy := ebiten.CursorPosition()
-//	lx, ly := ebipixel.Convert().ToLogicalCoords(cx, cy)
+//	lx, ly := mipix.Convert().ToLogicalCoords(cx, cy)
 func Convert() AccessorConvert { return AccessorConvert{} }
 
 // Transforms coordinates obtained from [ebiten.CursorPosition]() and
@@ -318,7 +318,7 @@ type AccessorDebug struct{}
 // Provides access to debugging functionality in a structured
 // manner. Use through method chaining, e.g.:
 //
-//	ebipixel.Debug().Drawf("current tick: %d", ebipixel.Tick().Now())
+//	mipix.Debug().Drawf("current tick: %d", mipix.Tick().Now())
 func Debug() AccessorDebug { return AccessorDebug{} }
 
 // Similar to Printf debugging, but drawing the text on the top
@@ -337,8 +337,8 @@ func (AccessorDebug) Drawf(format string, args ...any) {
 // between those two tick counts.
 // Some examples:
 //
-//	ebipixel.Debug().Printfr(0, 0, "only print on the first tick\n")
-//	ebipixel.Debug().Printfr(180, 300, "print from 3s to 5s lapse\n")
+//	mipix.Debug().Printfr(0, 0, "only print on the first tick\n")
+//	mipix.Debug().Printfr(180, 300, "print from 3s to 5s lapse\n")
 func (AccessorDebug) Printfr(firstTick, lastTick uint64, format string, args ...any) {
 	pkgController.debugPrintfr(firstTick, lastTick, format, args...)
 }
@@ -365,7 +365,7 @@ type AccessorTick struct{}
 // Provides access to game tick functions in a structured
 // manner. Use through method chaining, e.g.:
 //
-//	currentTick := ebipixel.Tick().Now()
+//	currentTick := mipix.Tick().Now()
 func Tick() AccessorTick { return AccessorTick{} }
 
 // Returns the current tick.
