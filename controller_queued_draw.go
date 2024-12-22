@@ -1,4 +1,4 @@
-package ebipixel
+package mipix
 
 import "github.com/hajimehoshi/ebiten/v2"
 

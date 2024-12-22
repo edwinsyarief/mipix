@@ -1,4 +1,4 @@
-package ebipixel
+package mipix
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package ebipixel
+package mipix
 
 // See [Redraw]().
 type AccessorRedraw struct{}

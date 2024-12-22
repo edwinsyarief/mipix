@@ -1,4 +1,4 @@
-package ebipixel
+package mipix
 
 import "github.com/edwinsyarief/mipix/shaker"
 
