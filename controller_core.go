@@ -11,7 +11,6 @@ import (
 	"github.com/edwinsyarief/mipix/utils"
 	"github.com/edwinsyarief/mipix/zoomer"
 	"github.com/hajimehoshi/ebiten/v2"
-	_ "github.com/silbinarywolf/preferdiscretegpu"
 )
 
 var pkgController controller

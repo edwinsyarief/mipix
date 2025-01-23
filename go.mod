@@ -5,7 +5,6 @@ go 1.23.4
 require (
 	github.com/edwinsyarief/ebi-math v1.0.0
 	github.com/hajimehoshi/ebiten/v2 v2.8.6
-	github.com/silbinarywolf/preferdiscretegpu v1.0.0
 )
 
 require (
